@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robo Rebellion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <h1>ROBO REBELLION</h1>
+      <div id="character-selection">
+        <div class="character" data-type="assault">
+          <h3>Assault Bot</h3>
+          <p>Balanced stats, rapid-fire weapons</p>
+        </div>
+        <div class="character" data-type="tank">
+          <h3>Tank Bot</h3>
+          <p>High HP, slow movement, heavy weapons</p>
+        </div>
+        <div class="character" data-type="stealth">
+          <h3>Stealth Bot</h3>
+          <p>Fast, cloaking ability, low HP</p>
+        </div>
+        <div class="character" data-type="engineer">
+          <h3>Engineer Bot</h3>
+          <p>Deploys drones/turrets, weak direct combat</p>
+        </div>
+      </div>
+      <button id="start-game">START MISSION</button>
+    </div>
+    
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Message  -->
+    <div id="message-container"></div>
+    
+    <!-- Game Over Screen -->
+    <div id="game-over" class="hidden">
+      <h2>SYSTEM FAILURE</h2>
+      <p>Score: <span id="final-score">0</span></p>
+      <p>Rooms cleared: <span id="rooms-cleared">0</span></p>
+      <button id="restart-game">REBOOT SYSTEM</button>
+    </div>
+    
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="health-bar">
+        <div id="health-fill"></div>
+        <span id="health-text">100/100</span>
+      </div>
+      <div id="energy-bar">
+        <div id="energy-fill"></div>
+        <span id="energy-text">100/100</span>
+      </div>
+      <div id="weapon-info">Laser Rifle</div>
+      <div id="special-cooldown"></div>
+      <div id="score">Score: 0</div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/dungeon.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/enemies.js"></script>
+  <script src="js/powerups.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
