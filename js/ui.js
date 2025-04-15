@@ -1,3 +1,96 @@
+class UI {
+    constructor(game) {
+      this.game = game;
+      this.gameUI = null; // For phaser UI
+    }
+    
+    init(scene) {
+      this.gameUI = new GameUI(scene);
+    }
+    
+    showMessage(text, duration) {
+      const messageContainer = document.getElementById('message-container');
+      const message = document.createElement('div');
+      message.className = 'game-message';
+      message.textContent = text;
+      messageContainer.appendChild(message);
+      
+      setTimeout(() => {
+        message.classList.add('fade-out');
+        setTimeout(() => message.remove(), 500);
+      }, duration);
+    }
+    
+    updateHealthBar() {
+      if (!this.game.player) return;
+      
+      const healthPercent = (this.game.player.health / this.game.player.maxHealth) * 100;
+      document.getElementById('health-fill').style.width = `${healthPercent}%`;
+      document.getElementById('health-text').textContent = `${Math.floor(this.game.player.health)}/${this.game.player.maxHealth}`;
+    }
+    
+    updateEnergyBar() {
+      if (!this.game.player) return;
+      
+      const energyPercent = (this.game.player.energy / this.game.player.maxEnergy) * 100;
+      document.getElementById('energy-fill').style.width = `${energyPercent}%`;
+      document.getElementById('energy-text').textContent = `${Math.floor(this.game.player.energy)}/${this.game.player.maxEnergy}`;
+    }
+    
+    updateWeaponInfo() {
+      if (!this.game.player) return;
+      
+      document.getElementById('weapon-info').textContent = this.game.player.weapon.name;
+    }
+    
+    updateAll() {
+      this.updateHealthBar();
+      this.updateEnergyBar();
+      this.updateWeaponInfo();
+      document.getElementById('score').textContent = `Score: ${this.game.score}`;
+    }
+    
+    reset() {
+      // Reset UI elements
+    }
+    
+    update(deltaTime) {
+      // Update UI animations
+    }
+    
+    showGameOverScreen(stats) {
+      document.getElementById('final-score').textContent = stats.score;
+      document.getElementById('rooms-cleared').textContent = stats.roomsCleared;
+      document.getElementById('game-over').classList.remove('hidden');
+    }
+    
+    showMainMenu() {
+      document.getElementById('start-screen').classList.remove('hidden');
+      document.getElementById('game-over').classList.add('hidden');
+      document.getElementById('hud').classList.add('hidden');
+      
+      // Set up character selection
+      const characters = document.querySelectorAll('.character');
+      characters.forEach(char => {
+        char.addEventListener('click', () => {
+          characters.forEach(c => c.classList.remove('selected'));
+          char.classList.add('selected');
+        });
+      });
+      
+      const startButton = document.getElementById('start-game');
+      startButton.addEventListener('click', () => {
+        const selectedChar = document.querySelector('.character.selected');
+        const robotType = selectedChar ? selectedChar.dataset.type : 'assault';
+        
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        
+        this.game.startGame(robotType);
+      });
+    }
+  }
+
 class GameUI {
   constructor(scene) {
       this.scene = scene;

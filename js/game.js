@@ -52,12 +52,35 @@ class Game {
     this.ctx.scale(this.pixelRatio, this.pixelRatio);
   }
 
+  resizeCanvas() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+  }
+
   initState() {
-    this.state = 'start'; // start, playing, paused, gameover
+    this.state = 'start';
     this.score = 0;
     this.roomsCleared = 0;
     this.currentLevel = 1;
     this.gameTime = 0;
+    
+    // Initialize transition state
+    this.transitionState = {
+      active: false,
+      progress: 0,
+      duration: this.config.roomTransitionDuration,
+      direction: null,
+      fromRoom: null,
+      toRoom: null,
+      startPos: { x: 0, y: 0 },
+      endPos: { x: 0, y: 0 },
+      cameraStart: { x: 0, y: 0 },
+      cameraEnd: { x: 0, y: 0 }
+    };
+    
+    // Initialize camera
+    this.camera = { x: 0, y: 0 };
   }
 
   initGameWorld() {
@@ -79,6 +102,7 @@ class Game {
     this.powerups = new Set();
     this.particles = new Set();
     this.effects = new Set();
+    this.turrets = new Set();
   }
 
   initInput() {
@@ -97,11 +121,7 @@ class Game {
   initUI() {
     this.ui = new UI(this);
     this.notificationSystem = new NotificationSystem(this);
-    
-    // Damage indicators
     this.damageNumbers = new DamageNumberSystem(this);
-    
-    // Tutorial system
     this.tutorial = new TutorialSystem(this);
   }
 
@@ -115,40 +135,33 @@ class Game {
   }
 
   gameLoop(timestamp) {
-    // Calculate delta time (in seconds)
     const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1);
     this.lastTime = timestamp;
     
-    // Update game state
     if (this.state === 'playing') {
       this.gameTime += deltaTime;
       this.update(deltaTime);
     }
     
-    // Always render (even when paused)
     this.render();
-    
-    // Continue the loop
     this.animationFrame = requestAnimationFrame(t => this.gameLoop(t));
   }
 
   update(deltaTime) {
-    // Update all game systems
     this.updatePlayer(deltaTime);
     this.updateEnemies(deltaTime);
     this.updateBullets(deltaTime);
+    this.updateTurrets(deltaTime);
     this.updatePowerups();
     this.updateParticles(deltaTime);
     this.updateEffects(deltaTime);
     this.updateRoomState();
     this.updateInputDevices();
     
-    // Update UI elements
     this.ui.update(deltaTime);
     this.notificationSystem.update(deltaTime);
     this.damageNumbers.update(deltaTime);
     
-    // Check game state
     this.checkPlayerState();
     this.checkRoomCompletion();
   }
@@ -158,7 +171,6 @@ class Game {
   // ========================
 
   spawnPlayer(robotType) {
-    // Create player based on selected type
     this.player = new Player(
       this.playerSpawnPosition.x,
       this.playerSpawnPosition.y,
@@ -166,12 +178,10 @@ class Game {
       this
     );
     
-    // Set initial unlocked weapons
     this.unlockedWeapons = new Set(['laserRifle']);
     this.equippedWeapons = ['laserRifle'];
     this.currentWeaponIndex = 0;
     
-    // Player starting stats
     this.playerStats = {
       totalDamageDealt: 0,
       totalDamageTaken: 0,
@@ -180,7 +190,7 @@ class Game {
       totalAbilitiesUsed: 0
     };
     
-    // Setup player event listeners
+    // Setup event listeners
     this.player.on('damage-dealt', amount => {
       this.stats.damageDealt += amount;
       this.playerStats.totalDamageDealt += amount;
@@ -207,7 +217,6 @@ class Game {
   updatePlayer(deltaTime) {
     if (!this.player) return;
     
-    // Handle movement input
     const moveVector = { x: 0, y: 0 };
     
     // Keyboard movement
@@ -280,23 +289,18 @@ class Game {
     const roomCenter = this.currentRoom.getCenter();
     const playerPos = { x: this.player.x, y: this.player.y };
     
-    // Calculate enemy count based on difficulty and room size
     const baseCount = Math.floor(this.currentRoom.area / 10000);
     const enemyCount = Math.min(
       this.config.maxEnemiesPerRoom,
       baseCount + this.currentLevel
     );
     
-    // Biome-specific enemy spawn weights
     const spawnTable = this.getBiomeSpawnTable(biome);
     
     for (let i = 0; i < enemyCount; i++) {
-      // Find valid spawn position (away from player)
       const position = this.findValidSpawnPosition(roomCenter, playerPos, 200);
+      if (!position) continue;
       
-      if (!position) continue; // Skip if no valid position found
-      
-      // Select enemy type based on spawn weights
       const enemyType = this.weightedRandom(spawnTable);
       const enemy = this.createEnemy(enemyType, position.x, position.y);
       
@@ -305,7 +309,6 @@ class Game {
   }
 
   getBiomeSpawnTable(biome) {
-    // Define spawn chances for each biome
     const tables = {
       'Factory': [
         { type: 'ScoutDrone', weight: 0.7 },
@@ -341,12 +344,10 @@ class Game {
     this.enemies.forEach(enemy => {
       enemy.update(deltaTime, this.player);
       
-      // Check collision with player
       if (!enemy.isFriendly && this.checkCollision(enemy, this.player) && !this.player.isInvulnerable) {
         this.player.takeDamage(enemy.contactDamage);
         this.ui.updateHealthBar();
         
-        // Show damage number
         this.damageNumbers.add(
           enemy.contactDamage,
           this.player.x,
@@ -354,7 +355,6 @@ class Game {
           '#ff0000'
         );
         
-        // Apply knockback
         const angle = Math.atan2(
           this.player.y - enemy.y,
           this.player.x - enemy.x
@@ -376,19 +376,16 @@ class Game {
     this.bullets.forEach(bullet => {
       bullet.update(deltaTime);
       
-      // Remove expired bullets
       if (bullet.lifetime <= 0) {
         this.bullets.delete(bullet);
         return;
       }
       
-      // Check out of bounds
       if (!this.currentRoom.contains(bullet.x, bullet.y)) {
         this.bullets.delete(bullet);
         return;
       }
       
-      // Check collisions
       if (bullet.fromPlayer) {
         this.checkPlayerBulletCollision(bullet);
       } else {
@@ -402,7 +399,6 @@ class Game {
       if (!enemy.isFriendly && this.checkCollision(bullet, enemy)) {
         enemy.takeDamage(bullet.damage);
         
-        // Show damage number
         this.damageNumbers.add(
           bullet.damage,
           enemy.x,
@@ -425,7 +421,6 @@ class Game {
       this.player.takeDamage(bullet.damage);
       this.ui.updateHealthBar();
       
-      // Show damage number
       this.damageNumbers.add(
         bullet.damage,
         this.player.x,
@@ -438,107 +433,59 @@ class Game {
   }
 
   // ========================
-  // Room and Level Management
+  // Turret Management
   // ========================
 
-  updateRoomState() {
-    if (this.transitionState.active) {
-      this.updateRoomTransition();
-      return;
-    }
-    
-    // Check for room transitions
-    if (this.isPlayerAtDoor() && this.enemies.size === 0) {
-      this.startRoomTransition();
-    }
+  updateTurrets(deltaTime) {
+    this.turrets.forEach(turret => {
+      turret.update(deltaTime);
+      
+      // Turret shooting logic
+      if (turret.cooldown <= 0) {
+        this.fireTurretShot(turret);
+        turret.cooldown = turret.fireRate;
+      } else {
+        turret.cooldown -= deltaTime;
+      }
+    });
   }
 
-  startRoomTransition() {
-    const player = this.player;
-    const room = this.currentRoom;
-    
-    // Find which door player is at
-    const doorDirection = this.getPlayerDoorDirection();
-    if (!doorDirection || !room[doorDirection]) return;
-    
-    // Find connected room
-    const nextRoom = this.dungeon.getRoomById(room[doorDirection]);
-    if (!nextRoom) return;
-    
-    // Calculate transition positions
-    const positions = this.calculateTransitionPositions(doorDirection, nextRoom);
-    
-    // Mark current room as cleared if not a safe room
-    if (!room.isSafeRoom) {
-      room.cleared = true;
-      this.roomsCleared++;
-    }
-    
-    // Setup transition state
-    this.transitionState = {
-      active: true,
-      progress: 0,
-      direction: doorDirection,
-      fromRoom: room,
-      toRoom: nextRoom,
-      startPos: { x: player.x, y: player.y },
-      endPos: positions.player,
-      cameraStart: { x: this.camera.x, y: this.camera.y },
-      cameraEnd: positions.camera
-    };
-    
-    // Clear bullets
-    this.bullets.clear();
-    
-    // Play transition effect
-    this.effects.add(new RoomTransitionEffect(this, doorDirection));
-    
-    // Show room info if first visit
-    if (!nextRoom.visited) {
-      nextRoom.visited = true;
-      this.stats.roomsVisited++;
-      
-      if (nextRoom.isBossRoom) {
-        this.notificationSystem.show("DANGER: Boss Room Detected!", 3000, '#ff0000');
-      } else if (!nextRoom.isSafeRoom) {
-        this.notificationSystem.show(`Entered ${nextRoom.biome} Sector`, 2000);
-      }
-    }
-  }
+  fireTurretShot(turret) {
+    if (!this.enemies.size) return;
 
-  updateRoomTransition() {
-    const ts = this.transitionState;
-    ts.progress += (this.time.delta / ts.duration);
-    
-    // Apply easing
-    const progress = Phaser.Math.Easing.Sine.InOut(ts.progress);
-    
-    // Update player position
-    this.player.x = ts.startPos.x + (ts.endPos.x - ts.startPos.x) * progress;
-    this.player.y = ts.startPos.y + (ts.endPos.y - ts.startPos.y) * progress;
-    
-    // Update camera position
-    this.camera.x = ts.cameraStart.x + (ts.cameraEnd.x - ts.cameraStart.x) * progress;
-    this.camera.y = ts.cameraStart.y + (ts.cameraEnd.y - ts.cameraStart.y) * progress;
-    
-    // Complete transition
-    if (ts.progress >= 1) {
-      this.currentRoom = ts.toRoom;
-      this.transitionState.active = false;
-      
-      // Spawn enemies if not cleared
-      if (!this.currentRoom.cleared && !this.currentRoom.isSafeRoom) {
-        if (this.currentRoom.isBossRoom) {
-          this.spawnBoss();
-        } else {
-          this.spawnEnemies();
-        }
+    // Find closest enemy
+    let closestEnemy = null;
+    let closestDistance = Infinity;
+
+    this.enemies.forEach(enemy => {
+      const dx = enemy.x - turret.x;
+      const dy = enemy.y - turret.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestEnemy = enemy;
       }
-      
-      // Add powerups to safe rooms
-      if (this.currentRoom.isSafeRoom) {
-        this.addSafeRoomPowerups();
-      }
+    });
+
+    if (closestEnemy && closestDistance < turret.range) {
+      const angle = Math.atan2(
+        closestEnemy.y - turret.y,
+        closestEnemy.x - turret.x
+      );
+
+      const bullet = new Bullet(
+        turret.x + turret.width / 2,
+        turret.y + turret.height / 2,
+        Math.cos(angle) * turret.bulletSpeed,
+        Math.sin(angle) * turret.bulletSpeed,
+        turret.damage,
+        '#795548',
+        true,
+        'standard'
+      );
+
+      this.bullets.add(bullet);
     }
   }
 
@@ -547,49 +494,35 @@ class Game {
   // ========================
 
   startGame(robotType) {
-    // Reset game state
     this.state = 'playing';
     this.score = 0;
     this.roomsCleared = 0;
     this.currentLevel = 1;
     this.gameTime = 0;
     
-    // Clear all entities
     this.enemies.clear();
     this.bullets.clear();
     this.powerups.clear();
     this.particles.clear();
     this.effects.clear();
+    this.turrets.clear();
     
-    // Generate new dungeon
     this.dungeon.generate();
     this.currentRoom = this.dungeon.startRoom;
     this.playerSpawnPosition = this.currentRoom.getCenter();
     
-    // Spawn player
     this.spawnPlayer(robotType);
-    
-    // Add initial powerups to safe room
     this.addSafeRoomPowerups();
     
-    // Update UI
     this.ui.reset();
     this.ui.updateAll();
-    
-    // Show welcome message
     this.notificationSystem.show("Systems Online - Mission Start!", 2500);
-    
-    // Start tutorial
     this.tutorial.start();
   }
 
   gameOver() {
     this.state = 'gameover';
-    
-    // Save high score
     this.saveHighScore();
-    
-    // Show game over screen
     this.ui.showGameOverScreen({
       score: this.score,
       roomsCleared: this.roomsCleared,
@@ -598,9 +531,6 @@ class Game {
       damageDealt: this.stats.damageDealt,
       damageTaken: this.stats.damageTaken
     });
-    
-    // Play game over sound
-    this.soundManager.play('game_over');
   }
 
   // ========================
@@ -612,7 +542,6 @@ class Game {
     let position;
     
     do {
-      // Random position in room (with padding)
       position = {
         x: roomCenter.x + Phaser.Math.Between(-this.currentRoom.width/2 + 50, this.currentRoom.width/2 - 50),
         y: roomCenter.y + Phaser.Math.Between(-this.currentRoom.height/2 + 50, this.currentRoom.height/2 - 50)
@@ -620,18 +549,15 @@ class Game {
       
       attempts++;
       
-      // Check distance to avoid position
       const distance = Phaser.Math.Distance.Between(
         position.x, position.y,
         avoidPos.x, avoidPos.y
       );
       
-      if (distance >= minDistance) {
-        return position;
-      }
+      if (distance >= minDistance) return position;
     } while (attempts < maxAttempts);
     
-    return null; // Failed to find valid position
+    return null;
   }
 
   checkCollision(obj1, obj2) {
@@ -648,13 +574,11 @@ class Game {
     let random = Math.random() * totalWeight;
     
     for (const item of items) {
-      if (random < item.weight) {
-        return item.type;
-      }
+      if (random < item.weight) return item.type;
       random -= item.weight;
     }
     
-    return items[0].type; // Fallback
+    return items[0].type;
   }
 
   // ========================
@@ -662,26 +586,19 @@ class Game {
   // ========================
 
   setupEventListeners() {
-    // Window events
     window.addEventListener('resize', () => this.resizeCanvas());
     window.addEventListener('blur', () => this.pauseGame());
     window.addEventListener('focus', () => this.resumeGame());
     
-    // Keyboard events
     window.addEventListener('keydown', e => {
       this.keys[e.key] = true;
-      
-      // Pause game on ESC
-      if (e.key === 'Escape') {
-        this.togglePause();
-      }
+      if (e.key === 'Escape') this.togglePause();
     });
     
     window.addEventListener('keyup', e => {
       this.keys[e.key] = false;
     });
     
-    // Mouse events
     this.canvas.addEventListener('mousemove', e => {
       const rect = this.canvas.getBoundingClientRect();
       this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width) / this.pixelRatio;
@@ -698,10 +615,8 @@ class Game {
       if (e.button === 2) this.mouse.rightDown = false;
     });
     
-    // Prevent context menu
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
     
-    // Gamepad events
     window.addEventListener('gamepadconnected', e => {
       this.gamepad = e.gamepad;
     });
@@ -712,7 +627,6 @@ class Game {
   }
 
   updateInputDevices() {
-    // Update gamepad state
     if (navigator.getGamepads && navigator.getGamepads()[0]) {
       this.gamepad = navigator.getGamepads()[0];
       this.lastGamepadUpdate = performance.now();
@@ -726,79 +640,47 @@ class Game {
   // ========================
 
   render() {
-    // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    // Calculate camera position
     this.updateCamera();
-    
-    // Draw game world
     this.renderWorld();
-    
-    // Draw UI
     this.renderUI();
-    
-    // Draw effects
     this.renderEffects();
   }
 
   renderWorld() {
-    // Save context state
     this.ctx.save();
-    
-    // Apply camera transform
     this.ctx.translate(-this.camera.x, -this.camera.y);
     
-    // Draw current room
     this.currentRoom.render(this.ctx);
-    
-    // Draw connected rooms (doors)
     this.renderDoors();
-    
-    // Draw entities
     this.renderEntities();
     
-    // Restore context state
     this.ctx.restore();
   }
 
   renderEntities() {
-    // Draw powerups first (background)
     this.powerups.forEach(powerup => powerup.render(this.ctx));
     
-    // Draw enemy bullets
     this.bullets.forEach(bullet => {
       if (!bullet.fromPlayer) bullet.render(this.ctx);
     });
     
-    // Draw enemies
     this.enemies.forEach(enemy => enemy.render(this.ctx));
+    this.turrets.forEach(turret => turret.render(this.ctx));
     
-    // Draw player
     if (this.player) this.player.render(this.ctx);
     
-    // Draw player bullets
     this.bullets.forEach(bullet => {
       if (bullet.fromPlayer) bullet.render(this.ctx);
     });
     
-    // Draw particles
     this.particles.forEach(particle => particle.render(this.ctx));
   }
 
-  // ========================
-  // Main Game Initialization
-  // ========================
-
   static init() {
-    // Wait for assets to load
     window.addEventListener('load', () => {
       const game = new Game();
-      
-      // Expose game to console for debugging
       window.game = game;
-      
-      // Start initial screen
       game.ui.showMainMenu();
     });
   }

@@ -47,23 +47,26 @@
     
     <!-- HUD -->
     <div id="hud" class="hidden">
-      <div id="health-bar">
-        <div id="health-fill"></div>
-        <span id="health-text">100/100</span>
-      </div>
-      <div id="energy-bar">
-        <div id="energy-fill"></div>
-        <span id="energy-text">100/100</span>
-      </div>
-      <div id="weapon-info">Laser Rifle</div>
-      <div id="special-cooldown"></div>
-      <div id="score">Score: 0</div>
+  <div id="health-container">
+    <div id="health-bar">
+      <div id="health-fill"></div>
     </div>
+    <span id="health-text">100/100</span>
+  </div>
+  <div id="energy-container">
+    <div id="energy-bar">
+      <div id="energy-fill"></div>
+    </div>
+    <span id="energy-text">100/100</span>
+  </div>
+  <div id="weapon-info">Laser Rifle</div>
+  <div id="special-cooldown"></div>
+  <div id="score">Score: 0</div>
+</div>
   </div>
   
   <!-- Scripts -->
-  <!-- Comment out the complex game code -->
-  <!-- 
+  
   <script src="js/dungeon.js"></script>
   <script src="js/dungeonManager.js"></script>
   <script src="js/weapons.js"></script>
@@ -72,10 +75,10 @@
   <script src="js/powerups.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/game.js"></script>
-  -->
+  
 
   <!-- Add the simplified game -->
-  <script src="js/simplified-game.js"></script>
+  <!-- <script src="js/simplified-game.js"></script> -->
 
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </body>
