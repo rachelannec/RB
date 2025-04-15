@@ -154,7 +154,7 @@ class RoboRebellion {
     }
     
     // Toggle pause with Escape
-    if (e.key === 'Escape' && this.state === 'playing') {
+    if (e.key === 'Escape' && (this.state === 'playing' || this.state === 'paused')) {
       this.togglePause();
     }
     
@@ -231,16 +231,28 @@ class RoboRebellion {
 
   togglePause() {
     if (this.state === 'playing') {
+      // Pause the game
       this.state = 'paused';
       document.getElementById('pause-screen').classList.remove('hidden');
-      // Optionally pause any audio
-      // Object.values(this.sounds).forEach(sound => sound.pause());
+      console.log("Game paused");
     } else if (this.state === 'paused') {
+      // Resume the game
       this.state = 'playing';
       document.getElementById('pause-screen').classList.add('hidden');
-      // Continue game loop
-      this.lastTime = performance.now();
+      this.lastTime = performance.now(); // Reset the timer to prevent huge jumps
+      console.log("Game resumed");
     }
+    // if (this.state === 'playing') {
+    //   this.state = 'paused';
+    //   document.getElementById('pause-screen').classList.remove('hidden');
+    //   // Optionally pause any audio
+    //   // Object.values(this.sounds).forEach(sound => sound.pause());
+    // } else if (this.state === 'paused') {
+    //   this.state = 'playing';
+    //   document.getElementById('pause-screen').classList.add('hidden');
+    //   // Continue game loop
+    //   this.lastTime = performance.now();
+    // }
   }
   
   
@@ -984,7 +996,7 @@ class RoboRebellion {
       this.ctx.textAlign = 'center';
       this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
       this.ctx.font = '24px Arial';
-      this.ctx.fillText('Press ESC to resume', this.canvas.width / 2, this.canvas.height / 2 + 50);
+      // this.ctx.fillText('Press ESC to resume', this.canvas.width / 2, this.canvas.height / 2 + 50);
     }
     
     // Draw debug info
