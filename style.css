@@ -306,3 +306,67 @@ p {
   from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Pause Button */
+#game-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 20;
+}
+
+.hud-button {
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.hud-button:hover {
+  background-color: rgba(76, 175, 80, 0.8);
+  transform: scale(1.1);
+}
+
+/* Pause Screen */
+#pause-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+#pause-screen h2 {
+  color: white;
+  font-size: 48px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+}
+
+#pause-screen p {
+  color: white;
+  font-size: 24px;
+  margin-bottom: 30px;
+}
+
+#pause-screen button {
+  margin: 10px;
+  padding: 15px 30px;
+  font-size: 18px;
+}

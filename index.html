@@ -38,6 +38,9 @@
         </div>
         
         <button id="start-game">START MISSION</button>
+        <div class="controls-info">
+            <p>WASD or Arrows to move • Mouse to aim and shoot • SPACE to dash • ESC to pause</p>
+        </div>
     </div>
     
     <!-- Game Over Screen -->
@@ -56,9 +59,22 @@
                 <span id="health-text">100/100</span>
             </div>
         </div>
+        <div id="game-controls">
+            <button id="pause-button" class="hud-button">❚❚</button>
+        </div>
         <!-- <div id="score">Score: 0</div> -->
     </div>
     
+    <!-- pause screen -->
+    <div id="pause-screen" class="hidden">
+        <h2>GAME PAUSED</h2>
+        <p>Press ESC or click Resume to continue</p>
+        <div class="pause-buttons">
+            <button id="resume-game">RESUME</button>
+            <button id="restart-from-pause">RESTART</button>
+        </div>
+    </div>
+
     <!-- Game Scripts -->
     <script src="js/game-redux.js"></script>
 </body>

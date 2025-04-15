@@ -14,6 +14,7 @@ class RoboRebellion {
     this.wave = 1;
     this.waveEnemies = 0;
     this.gameTime = 0;
+    this.state = 'menu';
     
     // Player
     this.player = null;
@@ -141,6 +142,50 @@ class RoboRebellion {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
     });
+
+    // Enhanced keyboard events for pause
+  window.addEventListener('keydown', e => {
+    this.keys[e.key] = true;
+    
+    // Toggle debug mode with F1
+    if (e.key === 'F1') {
+      this.debugMode = !this.debugMode;
+      e.preventDefault();
+    }
+    
+    // Toggle pause with Escape
+    if (e.key === 'Escape' && this.state === 'playing') {
+      this.togglePause();
+    }
+    
+    // Dash with space bar
+    if (e.key === ' ' && this.state === 'playing' && this.player && !this.player.dashing) {
+      this.player.dash();
+    }
+  });
+  
+  // Add these event listeners for the pause button and pause screen
+  document.getElementById('pause-button').addEventListener('click', () => {
+    if (this.state === 'playing') {
+      this.togglePause();
+    }
+  });
+  
+  document.getElementById('resume-game').addEventListener('click', () => {
+    if (this.state === 'paused') {
+      this.togglePause();
+    }
+  });
+  
+  document.getElementById('restart-from-pause').addEventListener('click', () => {
+    if (this.state === 'paused') {
+      this.state = 'menu';
+      document.getElementById('pause-screen').classList.add('hidden');
+      document.getElementById('game-over').classList.add('hidden');
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    }
+  });
   }
 
   initializeAudio() {
@@ -183,6 +228,21 @@ class RoboRebellion {
       console.log(`Error playing ${name} sound:`, error);
     });
   }
+
+  togglePause() {
+    if (this.state === 'playing') {
+      this.state = 'paused';
+      document.getElementById('pause-screen').classList.remove('hidden');
+      // Optionally pause any audio
+      // Object.values(this.sounds).forEach(sound => sound.pause());
+    } else if (this.state === 'paused') {
+      this.state = 'playing';
+      document.getElementById('pause-screen').classList.add('hidden');
+      // Continue game loop
+      this.lastTime = performance.now();
+    }
+  }
+  
   
   loadAssets() {
     // Load sounds
