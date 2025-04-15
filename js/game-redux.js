@@ -142,15 +142,58 @@ class RoboRebellion {
       this.canvas.height = window.innerHeight;
     });
   }
+
+  initializeAudio() {
+    // Create a function to handle audio unlocking
+    const unlockAudio = () => {
+      if (this.audioInitialized) return;
+      
+      console.log("Initializing audio...");
+      
+      // Try to play and immediately pause all sounds to "unlock" them
+      Object.values(this.sounds).forEach(sound => {
+        sound.play()
+          .then(() => {
+            sound.pause();
+            sound.currentTime = 0;
+          })
+          .catch(e => console.log("Could not initialize audio:", e));
+      });
+      
+      this.audioInitialized = true;
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+  
+    // Add event listeners to unlock audio on user interaction
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+  }
+
+  playSound(name) {
+    if (!this.sounds[name]) return;
+    
+    // Reset the sound if it's already playing
+    const sound = this.sounds[name];
+    sound.currentTime = 0;
+    
+    // Play with proper error handling
+    sound.play().catch(error => {
+      // If sound fails, just log it and continue (don't break the game)
+      console.log(`Error playing ${name} sound:`, error);
+    });
+  }
   
   loadAssets() {
     // Load sounds
+    this.initializeAudio();
+
     this.sounds = {
-      shoot: new Audio('sounds/shoot.mp3'),
-      explosion: new Audio('sounds/explosion.mp3'),
-      powerup: new Audio('sounds/powerup.mp3'),
-      hit: new Audio('sounds/hit.mp3'),
-      gameOver: new Audio('sounds/gameover.mp3')
+      shoot: new Audio('assets/sounds/shoot.mp3'),
+      explosion: new Audio('assets/sounds/explosion.mp3'),
+      powerup: new Audio('assets/sounds/powerup.mp3'),
+      hit: new Audio('assets/sounds/hit.mp3'),
+      gameOver: new Audio('assets/sounds/gameover.mp3')
     };
     
     // For performance, preload and configure sounds
