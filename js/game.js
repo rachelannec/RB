@@ -1,537 +1,808 @@
-// Main Game Controller
 class Game {
-    constructor() {
-      this.canvas = document.getElementById('gameCanvas');
-      this.ctx = this.canvas.getContext('2d');
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-      
-      this.state = 'start'; // start, playing, gameover
-      this.score = 0;
-      this.roomsCleared = 0;
-      
-      this.player = null;
-      this.dungeon = null;
-      this.currentRoom = null;
-      this.enemies = [];
-      this.bullets = [];
-      this.powerups = [];
-      
-      this.mouse = { x: 0, y: 0 };
-      this.keys = {};
-      
-      this.lastTime = 0;
-      this.animationFrame = null;
-      
-      this.setupEventListeners();
-      this.ui = new UI(this);
-      
-      this.transitionState = {
-        active: false,
-        progress: 0,
-        duration: 500, // milliseconds
-        fromRoom: null,
-        toRoom: null,
-        startX: 0,
-        startY: 0,
-        endX: 0,
-        endY: 0
-      };
+  constructor() {
+    // Initialize core elements
+    this.initCanvas();
+    this.initState();
+    this.initGameWorld();
+    this.initCollections();
+    this.initInput();
+    this.initUI();
+    
+    // Set up event listeners
+    this.setupEventListeners();
+    
+    // Game configuration
+    this.config = {
+      difficultyScaling: 1.0,
+      roomTransitionDuration: 500,
+      maxEnemiesPerRoom: 8,
+      powerupDropChance: 0.3
+    };
 
-      this.unlockedWeapons = ['basicLaser']; // Start with basic weapon only
+    // Game statistics
+    this.stats = {
+      enemiesDefeated: 0,
+      damageDealt: 0,
+      damageTaken: 0,
+      roomsVisited: 0,
+      weaponsCollected: 1
+    };
+
+    // Start the game loop
+    this.lastTime = performance.now();
+    this.animationFrame = null;
+    this.startGameLoop();
+  }
+
+  // ========================
+  // Initialization Methods
+  // ========================
+
+  initCanvas() {
+    this.canvas = document.getElementById('gameCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.resizeCanvas();
+    
+    // High-DPI support
+    this.pixelRatio = window.devicePixelRatio || 1;
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+    this.canvas.width = window.innerWidth * this.pixelRatio;
+    this.canvas.height = window.innerHeight * this.pixelRatio;
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+  }
+
+  initState() {
+    this.state = 'start'; // start, playing, paused, gameover
+    this.score = 0;
+    this.roomsCleared = 0;
+    this.currentLevel = 1;
+    this.gameTime = 0;
+  }
+
+  initGameWorld() {
+    this.dungeon = new Dungeon({
+      width: 50,
+      height: 50,
+      roomCount: 10,
+      biomes: ['Factory', 'Server Core', 'Junkyard'],
+      bossEvery: 5
+    });
+    
+    this.currentRoom = null;
+    this.playerSpawnPosition = { x: 0, y: 0 };
+  }
+
+  initCollections() {
+    this.enemies = new Set();
+    this.bullets = new Set();
+    this.powerups = new Set();
+    this.particles = new Set();
+    this.effects = new Set();
+  }
+
+  initInput() {
+    this.keys = {};
+    this.mouse = { 
+      x: 0, 
+      y: 0,
+      isDown: false,
+      rightDown: false
+    };
+    
+    this.gamepad = null;
+    this.lastGamepadUpdate = 0;
+  }
+
+  initUI() {
+    this.ui = new UI(this);
+    this.notificationSystem = new NotificationSystem(this);
+    
+    // Damage indicators
+    this.damageNumbers = new DamageNumberSystem(this);
+    
+    // Tutorial system
+    this.tutorial = new TutorialSystem(this);
+  }
+
+  // ========================
+  // Core Game Loop
+  // ========================
+
+  startGameLoop() {
+    this.lastTime = performance.now();
+    this.gameLoop(this.lastTime);
+  }
+
+  gameLoop(timestamp) {
+    // Calculate delta time (in seconds)
+    const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1);
+    this.lastTime = timestamp;
+    
+    // Update game state
+    if (this.state === 'playing') {
+      this.gameTime += deltaTime;
+      this.update(deltaTime);
     }
     
-    setupEventListeners() {
-      // Character selection
-      document.querySelectorAll('.character').forEach(char => {
-        char.addEventListener('click', () => {
-          document.querySelectorAll('.character').forEach(c => c.classList.remove('selected'));
-          char.classList.add('selected');
-        });
-      });
-      
-      // Start game button
-      document.getElementById('start-game').addEventListener('click', () => {
-        const selectedChar = document.querySelector('.character.selected');
-        if (selectedChar) {
-          this.startGame(selectedChar.dataset.type);
-        } else {
-          // Default to assault if none selected
-          this.startGame('assault');
-        }
-      });
-      
-      // Restart game button
-      document.getElementById('restart-game').addEventListener('click', () => {
-        document.getElementById('game-over').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
-        this.state = 'start';
-      });
-      
-      // Keyboard events
-      window.addEventListener('keydown', e => {
-        this.keys[e.key] = true;
-        
-        // Spacebar for dash
-        if (e.key === ' ' && this.player && !this.player.isDashing && this.player.dashCooldown <= 0) {
-          this.player.dash();
-        }
-      });
-      
-      window.addEventListener('keyup', e => {
-        this.keys[e.key] = false;
-      });
-      
-      // Mouse events
-      this.canvas.addEventListener('mousemove', e => {
-        this.mouse.x = e.clientX;
-        this.mouse.y = e.clientY;
-      });
-      
-      this.canvas.addEventListener('mousedown', e => {
-        if (this.state !== 'playing') return;
-        
-        if (e.button === 0) { // Left click
-          this.player.shoot(this.mouse);
-        } else if (e.button === 2) { // Right click
-          this.player.useSpecialAbility();
-        }
-      });
-      
-      // Prevent context menu on right click
-      this.canvas.addEventListener('contextmenu', e => {
-        e.preventDefault();
-      });
-      
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-      });
+    // Always render (even when paused)
+    this.render();
+    
+    // Continue the loop
+    this.animationFrame = requestAnimationFrame(t => this.gameLoop(t));
+  }
+
+  update(deltaTime) {
+    // Update all game systems
+    this.updatePlayer(deltaTime);
+    this.updateEnemies(deltaTime);
+    this.updateBullets(deltaTime);
+    this.updatePowerups();
+    this.updateParticles(deltaTime);
+    this.updateEffects(deltaTime);
+    this.updateRoomState();
+    this.updateInputDevices();
+    
+    // Update UI elements
+    this.ui.update(deltaTime);
+    this.notificationSystem.update(deltaTime);
+    this.damageNumbers.update(deltaTime);
+    
+    // Check game state
+    this.checkPlayerState();
+    this.checkRoomCompletion();
+  }
+
+  // ========================
+  // Player Management
+  // ========================
+
+  spawnPlayer(robotType) {
+    // Create player based on selected type
+    this.player = new Player(
+      this.playerSpawnPosition.x,
+      this.playerSpawnPosition.y,
+      robotType,
+      this
+    );
+    
+    // Set initial unlocked weapons
+    this.unlockedWeapons = new Set(['laserRifle']);
+    this.equippedWeapons = ['laserRifle'];
+    this.currentWeaponIndex = 0;
+    
+    // Player starting stats
+    this.playerStats = {
+      totalDamageDealt: 0,
+      totalDamageTaken: 0,
+      totalShotsFired: 0,
+      totalDashesUsed: 0,
+      totalAbilitiesUsed: 0
+    };
+    
+    // Setup player event listeners
+    this.player.on('damage-dealt', amount => {
+      this.stats.damageDealt += amount;
+      this.playerStats.totalDamageDealt += amount;
+    });
+    
+    this.player.on('damage-taken', amount => {
+      this.stats.damageTaken += amount;
+      this.playerStats.totalDamageTaken += amount;
+    });
+    
+    this.player.on('shot-fired', () => {
+      this.playerStats.totalShotsFired++;
+    });
+    
+    this.player.on('dash-used', () => {
+      this.playerStats.totalDashesUsed++;
+    });
+    
+    this.player.on('ability-used', () => {
+      this.playerStats.totalAbilitiesUsed++;
+    });
+  }
+
+  updatePlayer(deltaTime) {
+    if (!this.player) return;
+    
+    // Handle movement input
+    const moveVector = { x: 0, y: 0 };
+    
+    // Keyboard movement
+    if (this.keys['ArrowUp'] || this.keys['w']) moveVector.y -= 1;
+    if (this.keys['ArrowDown'] || this.keys['s']) moveVector.y += 1;
+    if (this.keys['ArrowLeft'] || this.keys['a']) moveVector.x -= 1;
+    if (this.keys['ArrowRight'] || this.keys['d']) moveVector.x += 1;
+    
+    // Gamepad movement
+    if (this.gamepad) {
+      moveVector.x += this.gamepad.axes[0];
+      moveVector.y += this.gamepad.axes[1];
     }
     
-    startGame(robotType) {
-      this.state = 'playing';
-      this.score = 0;
-      this.roomsCleared = 0;
-      
-      // Initialize player based on selected robot type
-      this.player = new Player(
-        this.canvas.width / 2,
-        this.canvas.height / 2,
-        robotType,
-        this
-      );
-      
-      // Generate dungeon
-      this.dungeon = new Dungeon(10, 8, this);
-      this.currentRoom = this.dungeon.startRoom;
-      
-      // Hide start screen, show HUD
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('hud').classList.remove('hidden');
-      
-      // Update HUD
-      this.ui.updateHealthBar();
-      this.ui.updateEnergyBar();
+    // Normalize movement vector
+    const length = Math.sqrt(moveVector.x * moveVector.x + moveVector.y * moveVector.y);
+    if (length > 0) {
+      moveVector.x /= length;
+      moveVector.y /= length;
+    }
+    
+    // Apply movement
+    this.player.move(moveVector.x, moveVector.y, deltaTime);
+    
+    // Handle shooting
+    if (this.mouse.isDown || (this.gamepad && this.gamepad.buttons[7].pressed)) {
+      this.player.shoot(this.mouse);
+    }
+    
+    // Handle weapon switching
+    if (this.keys['1'] || (this.gamepad && this.gamepad.buttons[4].pressed)) {
+      this.switchWeapon(0);
+    }
+    if (this.keys['2'] || (this.gamepad && this.gamepad.buttons[5].pressed)) {
+      this.switchWeapon(1);
+    }
+    
+    // Handle special ability
+    if (this.mouse.rightDown || (this.gamepad && this.gamepad.buttons[0].pressed)) {
+      this.player.useSpecialAbility();
+    }
+    
+    // Handle dash
+    if ((this.keys[' '] || (this.gamepad && this.gamepad.buttons[1].pressed)) && 
+        !this.player.isDashing && 
+        this.player.dashCooldown <= 0) {
+      this.player.dash();
+    }
+    
+    // Update player state
+    this.player.update(deltaTime);
+  }
+
+  switchWeapon(index) {
+    if (index < this.equippedWeapons.length) {
+      this.currentWeaponIndex = index;
+      this.player.equipWeapon(this.equippedWeapons[index]);
       this.ui.updateWeaponInfo();
-      
-      // Start game loop
-      this.lastTime = performance.now();
-      this.gameLoop();
     }
+  }
+
+  // ========================
+  // Enemy Management
+  // ========================
+
+  spawnEnemies() {
+    if (this.currentRoom.isSafeRoom || this.currentRoom.cleared) return;
     
-    gameLoop(timestamp = 0) {
-      const deltaTime = timestamp - this.lastTime;
-      this.lastTime = timestamp;
+    const biome = this.currentRoom.biome;
+    const roomCenter = this.currentRoom.getCenter();
+    const playerPos = { x: this.player.x, y: this.player.y };
+    
+    // Calculate enemy count based on difficulty and room size
+    const baseCount = Math.floor(this.currentRoom.area / 10000);
+    const enemyCount = Math.min(
+      this.config.maxEnemiesPerRoom,
+      baseCount + this.currentLevel
+    );
+    
+    // Biome-specific enemy spawn weights
+    const spawnTable = this.getBiomeSpawnTable(biome);
+    
+    for (let i = 0; i < enemyCount; i++) {
+      // Find valid spawn position (away from player)
+      const position = this.findValidSpawnPosition(roomCenter, playerPos, 200);
       
-      this.update(deltaTime / 1000); // Convert to seconds
-      this.render();
+      if (!position) continue; // Skip if no valid position found
       
-      if (this.state === 'playing') {
-        this.animationFrame = requestAnimationFrame(time => this.gameLoop(time));
-      }
+      // Select enemy type based on spawn weights
+      const enemyType = this.weightedRandom(spawnTable);
+      const enemy = this.createEnemy(enemyType, position.x, position.y);
+      
+      this.enemies.add(enemy);
     }
+  }
+
+  getBiomeSpawnTable(biome) {
+    // Define spawn chances for each biome
+    const tables = {
+      'Factory': [
+        { type: 'ScoutDrone', weight: 0.7 },
+        { type: 'HeavySentry', weight: 0.3 }
+      ],
+      'Server Core': [
+        { type: 'SniperBot', weight: 0.6 },
+        { type: 'ScoutDrone', weight: 0.4 }
+      ],
+      'Junkyard': [
+        { type: 'HeavySentry', weight: 0.8 },
+        { type: 'SniperBot', weight: 0.2 }
+      ]
+    };
     
-    update(deltaTime) {
-      if (this.state !== 'playing') return;
-      
-      // Update player
-      this.player.update(deltaTime, this.keys);
-      
-      // Update room transitions
-      this.checkRoomTransition();
-      this.updateRoomTransition(deltaTime);
-      
-      // Update bullets
-      this.updateBullets(deltaTime);
-      
-      // Update enemies
-      this.updateEnemies(deltaTime);
-      
-      // Update powerups
-      this.updatePowerups();
-      
-      // Check if player is dead
-      if (this.player.health <= 0) {
-        this.gameOver();
-      }
+    return tables[biome] || tables['Factory'];
+  }
+
+  createEnemy(type, x, y) {
+    switch (type) {
+      case 'ScoutDrone':
+        return new ScoutDrone(x, y, this);
+      case 'HeavySentry':
+        return new HeavySentry(x, y, this);
+      case 'SniperBot':
+        return new SniperBot(x, y, this);
+      default:
+        return new ScoutDrone(x, y, this);
     }
-    
-    updateBullets(deltaTime) {
-      for (let i = this.bullets.length - 1; i >= 0; i--) {
-        const bullet = this.bullets[i];
-        bullet.update(deltaTime);
+  }
+
+  updateEnemies(deltaTime) {
+    this.enemies.forEach(enemy => {
+      enemy.update(deltaTime, this.player);
+      
+      // Check collision with player
+      if (!enemy.isFriendly && this.checkCollision(enemy, this.player) && !this.player.isInvulnerable) {
+        this.player.takeDamage(enemy.contactDamage);
+        this.ui.updateHealthBar();
         
-        // Check if bullet is out of bounds
-        if (
-          bullet.x < this.currentRoom.x ||
-          bullet.x > this.currentRoom.x + this.currentRoom.width ||
-          bullet.y < this.currentRoom.y ||
-          bullet.y > this.currentRoom.y + this.currentRoom.height
-        ) {
-          this.bullets.splice(i, 1);
-          continue;
-        }
+        // Show damage number
+        this.damageNumbers.add(
+          enemy.contactDamage,
+          this.player.x,
+          this.player.y - 30,
+          '#ff0000'
+        );
         
-        // Check bullet collisions
-        if (bullet.fromPlayer) {
-          // Check enemy collisions
-          for (let j = this.enemies.length - 1; j >= 0; j--) {
-            const enemy = this.enemies[j];
-            if (this.checkCollision(bullet, enemy)) {
-              enemy.takeDamage(bullet.damage);
-              if (enemy.health <= 0) {
-                this.score += enemy.points;
-                this.ui.updateScore();
-                
-                // Chance to spawn powerup
-                if (Math.random() < 0.3) {
-                  this.spawnPowerup(enemy.x, enemy.y);
-                }
-                
-                this.enemies.splice(j, 1);
-              }
-              
-              this.bullets.splice(i, 1);
-              break;
-            }
-          }
-        } else {
-          // Check player collision
-          if (this.checkCollision(bullet, this.player) && !this.player.isInvulnerable) {
-            this.player.takeDamage(bullet.damage);
-            this.ui.updateHealthBar();
-            this.bullets.splice(i, 1);
-          }
-        }
-      }
-    }
-    
-    updateEnemies(deltaTime) {
-      // Spawn enemies if room not cleared
-      if (this.enemies.length === 0 && !this.currentRoom.cleared) {
-        this.spawnEnemies();
-      }
-      
-      // Update existing enemies
-      this.enemies.forEach(enemy => {
-        enemy.update(deltaTime, this.player);
+        // Apply knockback
+        const angle = Math.atan2(
+          this.player.y - enemy.y,
+          this.player.x - enemy.x
+        );
         
-        // Check collision with player
-        if (this.checkCollision(enemy, this.player) && !this.player.isInvulnerable) {
-          this.player.takeDamage(enemy.contactDamage);
-          this.ui.updateHealthBar();
-          
-          // Knockback player
-          const angle = Math.atan2(
-            this.player.y - enemy.y,
-            this.player.x - enemy.x
-          );
-          this.player.x += Math.cos(angle) * 15;
-          this.player.y += Math.sin(angle) * 15;
-        }
-      });
-    }
-    
-    updatePowerups() {
-      for (let i = this.powerups.length - 1; i >= 0; i--) {
-        const powerup = this.powerups[i];
-        
-        // Check collision with player
-        if (this.checkCollision(powerup, this.player)) {
-          powerup.apply(this.player);
-          this.powerups.splice(i, 1);
-          
-          // Update UI
-          this.ui.updateHealthBar();
-          this.ui.updateEnergyBar();
-          this.ui.updateWeaponInfo();
-        }
+        this.player.applyKnockback(
+          Math.cos(angle) * 15,
+          Math.sin(angle) * 15
+        );
       }
-    }
-    
-    checkRoomTransition() {
-      if (this.transitionState.active) return;
+    });
+  }
+
+  // ========================
+  // Bullet Management
+  // ========================
+
+  updateBullets(deltaTime) {
+    this.bullets.forEach(bullet => {
+      bullet.update(deltaTime);
       
-      const player = this.player;
-      const room = this.currentRoom;
-      
-      // Only allow transition if room is cleared of enemies
-      if (this.enemies.length > 0) return;
-      this.currentRoom.cleared = true;
-      
-      // Check if player is at a door
-      const padding = 20;
-      let nextRoom = null;
-      let startPos = { x: player.x, y: player.y };
-      let endPos = { x: player.x, y: player.y };
-      
-      // Door checks with similar logic but storing positions instead of teleporting
-      if (player.x < room.x + padding && room.leftDoor) {
-        nextRoom = this.dungeon.rooms.find(r => r.id === room.leftDoor);
-        if (nextRoom) {
-          endPos.x = nextRoom.x + nextRoom.width - player.width - padding;
-          endPos.y = nextRoom.y + nextRoom.height / 2 - player.height / 2;
-        }
-      }
-      // Right door
-      else if (player.x + player.width > room.x + room.width - padding && room.rightDoor) {
-        nextRoom = this.dungeon.rooms.find(r => r.id === room.rightDoor);
-        if (nextRoom) {
-          endPos.x = nextRoom.x + padding;
-          endPos.y = nextRoom.y + nextRoom.height / 2 - player.height / 2;
-        }
-      }
-      // Top door
-      else if (player.y < room.y + padding && room.topDoor) {
-        nextRoom = this.dungeon.rooms.find(r => r.id === room.topDoor);
-        if (nextRoom) {
-          endPos.x = nextRoom.x + nextRoom.width / 2 - player.width / 2;
-          endPos.y = nextRoom.y + nextRoom.height - player.height - padding;
-        }
-      }
-      // Bottom door
-      else if (player.y + player.height > room.y + room.height - padding && room.bottomDoor) {
-        nextRoom = this.dungeon.rooms.find(r => r.id === room.bottomDoor);
-        if (nextRoom) {
-          endPos.x = nextRoom.x + nextRoom.width / 2 - player.width / 2;
-          endPos.y = nextRoom.y + padding;
-        }
+      // Remove expired bullets
+      if (bullet.lifetime <= 0) {
+        this.bullets.delete(bullet);
+        return;
       }
       
-      // Start transition if we found a next room
-      if (nextRoom) {
-        this.transitionState = {
-          active: true,
-          progress: 0,
-          duration: 500,
-          fromRoom: this.currentRoom,
-          toRoom: nextRoom,
-          startX: startPos.x,
-          startY: startPos.y,
-          endX: endPos.x,
-          endY: endPos.y
-        };
+      // Check out of bounds
+      if (!this.currentRoom.contains(bullet.x, bullet.y)) {
+        this.bullets.delete(bullet);
+        return;
       }
-    }
-    
-    updateRoomTransition(deltaTime) {
-      if (!this.transitionState.active) return;
       
-      // Update transition progress
-      const transitionMs = deltaTime * 1000;
-      this.transitionState.progress += transitionMs;
-      
-      // Calculate transition factor (0 to 1)
-      const factor = Math.min(1, this.transitionState.progress / this.transitionState.duration);
-      
-      // Apply smooth interpolation
-      this.player.x = this.transitionState.startX + (this.transitionState.endX - this.transitionState.startX) * factor;
-      this.player.y = this.transitionState.startY + (this.transitionState.endY - this.transitionState.startY) * factor;
-      
-      // Complete the transition
-      if (factor >= 1) {
-        this.currentRoom = this.transitionState.toRoom;
-        this.roomsCleared++;
-        this.bullets = []; // Clear bullets when changing rooms
-        this.transitionState.active = false;
-      }
-    }
-    
-    spawnEnemies() {
-      const room = this.currentRoom;
-      if (room.isSafeRoom) return; // Don't spawn enemies in safe room
-      
-      const roomWidth = room.width;
-      const roomHeight = room.height;
-      const roomX = room.x;
-      const roomY = room.y;
-      
-      const enemyCount = Math.floor(Math.random() * 3) + 2; // 2-4 enemies
-      
-      for (let i = 0; i < enemyCount; i++) {
-        // Randomly select enemy type
-        const enemyType = Math.random();
-        let enemy;
-        
-        if (enemyType < 0.6) {
-          // Scout Drone (60% chance)
-          enemy = new ScoutDrone(
-            roomX + 100 + Math.random() * (roomWidth - 200),
-            roomY + 100 + Math.random() * (roomHeight - 200),
-            this
-          );
-        } else if (enemyType < 0.9) {
-          // Heavy Sentry (30% chance)
-          enemy = new HeavySentry(
-            roomX + 100 + Math.random() * (roomWidth - 200),
-            roomY + 100 + Math.random() * (roomHeight - 200),
-            this
-          );
-        } else {
-          // Sniper Bot (10% chance)
-          enemy = new SniperBot(
-            roomX + 100 + Math.random() * (roomWidth - 200),
-            roomY + 100 + Math.random() * (roomHeight - 200),
-            this
-          );
-        }
-        
-        this.enemies.push(enemy);
-      }
-    }
-    
-    spawnPowerup(x, y) {
-      const type = Math.random();
-      let powerup;
-      
-      if (type < 0.4) {
-        powerup = new HealthPack(x, y);
-      } else if (type < 0.8) {
-        powerup = new EnergyCell(x, y);
+      // Check collisions
+      if (bullet.fromPlayer) {
+        this.checkPlayerBulletCollision(bullet);
       } else {
-        powerup = new WeaponUpgrade(x, y, getRandomWeapon());
+        this.checkEnemyBulletCollision(bullet);
+      }
+    });
+  }
+
+  checkPlayerBulletCollision(bullet) {
+    for (const enemy of this.enemies) {
+      if (!enemy.isFriendly && this.checkCollision(bullet, enemy)) {
+        enemy.takeDamage(bullet.damage);
+        
+        // Show damage number
+        this.damageNumbers.add(
+          bullet.damage,
+          enemy.x,
+          enemy.y - 20,
+          '#ffffff'
+        );
+        
+        if (enemy.health <= 0) {
+          this.handleEnemyDefeat(enemy);
+        }
+        
+        this.bullets.delete(bullet);
+        break;
+      }
+    }
+  }
+
+  checkEnemyBulletCollision(bullet) {
+    if (this.checkCollision(bullet, this.player) && !this.player.isInvulnerable) {
+      this.player.takeDamage(bullet.damage);
+      this.ui.updateHealthBar();
+      
+      // Show damage number
+      this.damageNumbers.add(
+        bullet.damage,
+        this.player.x,
+        this.player.y - 30,
+        '#ff0000'
+      );
+      
+      this.bullets.delete(bullet);
+    }
+  }
+
+  // ========================
+  // Room and Level Management
+  // ========================
+
+  updateRoomState() {
+    if (this.transitionState.active) {
+      this.updateRoomTransition();
+      return;
+    }
+    
+    // Check for room transitions
+    if (this.isPlayerAtDoor() && this.enemies.size === 0) {
+      this.startRoomTransition();
+    }
+  }
+
+  startRoomTransition() {
+    const player = this.player;
+    const room = this.currentRoom;
+    
+    // Find which door player is at
+    const doorDirection = this.getPlayerDoorDirection();
+    if (!doorDirection || !room[doorDirection]) return;
+    
+    // Find connected room
+    const nextRoom = this.dungeon.getRoomById(room[doorDirection]);
+    if (!nextRoom) return;
+    
+    // Calculate transition positions
+    const positions = this.calculateTransitionPositions(doorDirection, nextRoom);
+    
+    // Mark current room as cleared if not a safe room
+    if (!room.isSafeRoom) {
+      room.cleared = true;
+      this.roomsCleared++;
+    }
+    
+    // Setup transition state
+    this.transitionState = {
+      active: true,
+      progress: 0,
+      direction: doorDirection,
+      fromRoom: room,
+      toRoom: nextRoom,
+      startPos: { x: player.x, y: player.y },
+      endPos: positions.player,
+      cameraStart: { x: this.camera.x, y: this.camera.y },
+      cameraEnd: positions.camera
+    };
+    
+    // Clear bullets
+    this.bullets.clear();
+    
+    // Play transition effect
+    this.effects.add(new RoomTransitionEffect(this, doorDirection));
+    
+    // Show room info if first visit
+    if (!nextRoom.visited) {
+      nextRoom.visited = true;
+      this.stats.roomsVisited++;
+      
+      if (nextRoom.isBossRoom) {
+        this.notificationSystem.show("DANGER: Boss Room Detected!", 3000, '#ff0000');
+      } else if (!nextRoom.isSafeRoom) {
+        this.notificationSystem.show(`Entered ${nextRoom.biome} Sector`, 2000);
+      }
+    }
+  }
+
+  updateRoomTransition() {
+    const ts = this.transitionState;
+    ts.progress += (this.time.delta / ts.duration);
+    
+    // Apply easing
+    const progress = Phaser.Math.Easing.Sine.InOut(ts.progress);
+    
+    // Update player position
+    this.player.x = ts.startPos.x + (ts.endPos.x - ts.startPos.x) * progress;
+    this.player.y = ts.startPos.y + (ts.endPos.y - ts.startPos.y) * progress;
+    
+    // Update camera position
+    this.camera.x = ts.cameraStart.x + (ts.cameraEnd.x - ts.cameraStart.x) * progress;
+    this.camera.y = ts.cameraStart.y + (ts.cameraEnd.y - ts.cameraStart.y) * progress;
+    
+    // Complete transition
+    if (ts.progress >= 1) {
+      this.currentRoom = ts.toRoom;
+      this.transitionState.active = false;
+      
+      // Spawn enemies if not cleared
+      if (!this.currentRoom.cleared && !this.currentRoom.isSafeRoom) {
+        if (this.currentRoom.isBossRoom) {
+          this.spawnBoss();
+        } else {
+          this.spawnEnemies();
+        }
       }
       
-      this.powerups.push(powerup);
+      // Add powerups to safe rooms
+      if (this.currentRoom.isSafeRoom) {
+        this.addSafeRoomPowerups();
+      }
     }
+  }
+
+  // ========================
+  // Game State Management
+  // ========================
+
+  startGame(robotType) {
+    // Reset game state
+    this.state = 'playing';
+    this.score = 0;
+    this.roomsCleared = 0;
+    this.currentLevel = 1;
+    this.gameTime = 0;
     
-    checkCollision(obj1, obj2) {
-      return (
-        obj1.x < obj2.x + obj2.width &&
-        obj1.x + obj1.width > obj2.x &&
-        obj1.y < obj2.y + obj2.height &&
-        obj1.y + obj1.height > obj2.y
+    // Clear all entities
+    this.enemies.clear();
+    this.bullets.clear();
+    this.powerups.clear();
+    this.particles.clear();
+    this.effects.clear();
+    
+    // Generate new dungeon
+    this.dungeon.generate();
+    this.currentRoom = this.dungeon.startRoom;
+    this.playerSpawnPosition = this.currentRoom.getCenter();
+    
+    // Spawn player
+    this.spawnPlayer(robotType);
+    
+    // Add initial powerups to safe room
+    this.addSafeRoomPowerups();
+    
+    // Update UI
+    this.ui.reset();
+    this.ui.updateAll();
+    
+    // Show welcome message
+    this.notificationSystem.show("Systems Online - Mission Start!", 2500);
+    
+    // Start tutorial
+    this.tutorial.start();
+  }
+
+  gameOver() {
+    this.state = 'gameover';
+    
+    // Save high score
+    this.saveHighScore();
+    
+    // Show game over screen
+    this.ui.showGameOverScreen({
+      score: this.score,
+      roomsCleared: this.roomsCleared,
+      timePlayed: this.gameTime,
+      enemiesDefeated: this.stats.enemiesDefeated,
+      damageDealt: this.stats.damageDealt,
+      damageTaken: this.stats.damageTaken
+    });
+    
+    // Play game over sound
+    this.soundManager.play('game_over');
+  }
+
+  // ========================
+  // Utility Methods
+  // ========================
+
+  findValidSpawnPosition(roomCenter, avoidPos, minDistance, maxAttempts = 20) {
+    let attempts = 0;
+    let position;
+    
+    do {
+      // Random position in room (with padding)
+      position = {
+        x: roomCenter.x + Phaser.Math.Between(-this.currentRoom.width/2 + 50, this.currentRoom.width/2 - 50),
+        y: roomCenter.y + Phaser.Math.Between(-this.currentRoom.height/2 + 50, this.currentRoom.height/2 - 50)
+      };
+      
+      attempts++;
+      
+      // Check distance to avoid position
+      const distance = Phaser.Math.Distance.Between(
+        position.x, position.y,
+        avoidPos.x, avoidPos.y
       );
+      
+      if (distance >= minDistance) {
+        return position;
+      }
+    } while (attempts < maxAttempts);
+    
+    return null; // Failed to find valid position
+  }
+
+  checkCollision(obj1, obj2) {
+    return (
+      obj1.x < obj2.x + obj2.width &&
+      obj1.x + obj1.width > obj2.x &&
+      obj1.y < obj2.y + obj2.height &&
+      obj1.y + obj1.height > obj2.y
+    );
+  }
+
+  weightedRandom(items) {
+    const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const item of items) {
+      if (random < item.weight) {
+        return item.type;
+      }
+      random -= item.weight;
     }
     
-    render() {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      
-      // Calculate camera position (center on player)
-      const cameraX = this.player.x + this.player.width / 2 - this.canvas.width / 2;
-      const cameraY = this.player.y + this.player.height / 2 - this.canvas.height / 2;
-      
-      // Render current room
-      this.currentRoom.render(this.ctx, cameraX, cameraY);
-      
-      // Render powerups
-      this.powerups.forEach(powerup => {
-        powerup.render(this.ctx, cameraX, cameraY);
-      });
-      
-      // Render player
-      this.player.render(this.ctx, cameraX, cameraY);
-      
-      // Render enemies
-      this.enemies.forEach(enemy => {
-        enemy.render(this.ctx, cameraX, cameraY);
-      });
-      
-      // Render bullets
-      this.bullets.forEach(bullet => {
-        bullet.render(this.ctx, cameraX, cameraY);
-      });
-      
-      // Render special ability cooldown
-      this.ui.updateSpecialCooldown();
-    }
+    return items[0].type; // Fallback
+  }
+
+  // ========================
+  // Event Handlers
+  // ========================
+
+  setupEventListeners() {
+    // Window events
+    window.addEventListener('resize', () => this.resizeCanvas());
+    window.addEventListener('blur', () => this.pauseGame());
+    window.addEventListener('focus', () => this.resumeGame());
     
-    gameOver() {
-      this.state = 'gameover';
-      cancelAnimationFrame(this.animationFrame);
+    // Keyboard events
+    window.addEventListener('keydown', e => {
+      this.keys[e.key] = true;
       
-      document.getElementById('hud').classList.add('hidden');
-      document.getElementById('final-score').textContent = this.score;
-      document.getElementById('rooms-cleared').textContent = this.roomsCleared;
-      document.getElementById('game-over').classList.remove('hidden');
+      // Pause game on ESC
+      if (e.key === 'Escape') {
+        this.togglePause();
+      }
+    });
+    
+    window.addEventListener('keyup', e => {
+      this.keys[e.key] = false;
+    });
+    
+    // Mouse events
+    this.canvas.addEventListener('mousemove', e => {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width) / this.pixelRatio;
+      this.mouse.y = (e.clientY - rect.top) * (this.canvas.height / rect.height) / this.pixelRatio;
+    });
+    
+    this.canvas.addEventListener('mousedown', e => {
+      if (e.button === 0) this.mouse.isDown = true;
+      if (e.button === 2) this.mouse.rightDown = true;
+    });
+    
+    this.canvas.addEventListener('mouseup', e => {
+      if (e.button === 0) this.mouse.isDown = false;
+      if (e.button === 2) this.mouse.rightDown = false;
+    });
+    
+    // Prevent context menu
+    this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    
+    // Gamepad events
+    window.addEventListener('gamepadconnected', e => {
+      this.gamepad = e.gamepad;
+    });
+    
+    window.addEventListener('gamepaddisconnected', e => {
+      this.gamepad = null;
+    });
+  }
+
+  updateInputDevices() {
+    // Update gamepad state
+    if (navigator.getGamepads && navigator.getGamepads()[0]) {
+      this.gamepad = navigator.getGamepads()[0];
+      this.lastGamepadUpdate = performance.now();
+    } else if (this.lastGamepadUpdate + 5000 < performance.now()) {
+      this.gamepad = null;
     }
   }
-  
-  // Initialize game when window loads
-  window.addEventListener('load', () => {
-    const game = new Game();
-  });
 
-// Modify the Player class shoot method to check if weapon is unlocked
-shoot(targetPos) {
-  if (!this.game.unlockedWeapons.includes(this.currentWeapon.id)) {
-    this.game.ui.showMessage(`You haven't found the ${this.currentWeapon.name} yet!`);
-    return;
+  // ========================
+  // Render Methods
+  // ========================
+
+  render() {
+    // Clear canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Calculate camera position
+    this.updateCamera();
+    
+    // Draw game world
+    this.renderWorld();
+    
+    // Draw UI
+    this.renderUI();
+    
+    // Draw effects
+    this.renderEffects();
   }
-  
-  
-}
 
-// Update WeaponUpgrade class
-class WeaponUpgrade {
-  apply(player) {
-    if (!player.game.unlockedWeapons.includes(this.weapon.id)) {
-      player.game.unlockedWeapons.push(this.weapon.id);
-      player.game.ui.showMessage(`Acquired ${this.weapon.name}!`, 2000);
-      player.currentWeapon = this.weapon;
-    } else {
-      player.game.ui.showMessage(`Weapon upgrade for ${this.weapon.name}!`, 2000);
-      // Maybe increase weapon damage or reduce energy cost
-    }
+  renderWorld() {
+    // Save context state
+    this.ctx.save();
+    
+    // Apply camera transform
+    this.ctx.translate(-this.camera.x, -this.camera.y);
+    
+    // Draw current room
+    this.currentRoom.render(this.ctx);
+    
+    // Draw connected rooms (doors)
+    this.renderDoors();
+    
+    // Draw entities
+    this.renderEntities();
+    
+    // Restore context state
+    this.ctx.restore();
+  }
+
+  renderEntities() {
+    // Draw powerups first (background)
+    this.powerups.forEach(powerup => powerup.render(this.ctx));
+    
+    // Draw enemy bullets
+    this.bullets.forEach(bullet => {
+      if (!bullet.fromPlayer) bullet.render(this.ctx);
+    });
+    
+    // Draw enemies
+    this.enemies.forEach(enemy => enemy.render(this.ctx));
+    
+    // Draw player
+    if (this.player) this.player.render(this.ctx);
+    
+    // Draw player bullets
+    this.bullets.forEach(bullet => {
+      if (bullet.fromPlayer) bullet.render(this.ctx);
+    });
+    
+    // Draw particles
+    this.particles.forEach(particle => particle.render(this.ctx));
+  }
+
+  // ========================
+  // Main Game Initialization
+  // ========================
+
+  static init() {
+    // Wait for assets to load
+    window.addEventListener('load', () => {
+      const game = new Game();
+      
+      // Expose game to console for debugging
+      window.game = game;
+      
+      // Start initial screen
+      game.ui.showMainMenu();
+    });
   }
 }
 
-// In your Dungeon class constructor
-createSafeRoom() {
-  // Find or create a room to be the safe room
-  const safeRoom = this.rooms[0]; // Make first room safe
-  safeRoom.isSafeRoom = true;
-  safeRoom.cleared = true; // Already cleared
-  
-  // Add special visuals and health packs
-  safeRoom.color = '#3a5c70'; // Different color
-  
-  // Spawn initial health pack and weapon in safe room
-  this.game.powerups.push(new HealthPack(
-    safeRoom.x + safeRoom.width * 0.3,
-    safeRoom.y + safeRoom.height * 0.5
-  ));
-  
-  this.game.powerups.push(new EnergyCell(
-    safeRoom.x + safeRoom.width * 0.7,
-    safeRoom.y + safeRoom.height * 0.5
-  ));
-  
-  this.startRoom = safeRoom;
-}
-
-// Add to UI class
-showMessage(text, duration = 2000) {
-  const msgElement = document.createElement('div');
-  msgElement.className = 'game-message';
-  msgElement.textContent = text;
-  document.getElementById('message-container').appendChild(msgElement);
-  
-  // Fade out and remove
-  setTimeout(() => {
-    msgElement.classList.add('fade-out');
-    setTimeout(() => msgElement.remove(), 500);
-  }, duration);
-}
+// Initialize the game
+Game.init();
