@@ -14,7 +14,7 @@ class RoboRebellion {
     this.wave = 1;
     this.waveEnemies = 0;
     this.gameTime = 0;
-    this.state = 'menu';
+    
       
     // Player
     this.player = null;
@@ -50,6 +50,7 @@ class RoboRebellion {
     this.bullets = [];
     this.explosions = [];
     this.powerups = [];
+    this.particles = [];
     
     // Camera
     this.camera = { x: 0, y: 0 };
@@ -156,25 +157,7 @@ class RoboRebellion {
   
   setupEventListeners() {
     // Keyboard events
-    window.addEventListener('keydown', e => {
-      this.keys[e.key] = true;
-      
-      // Toggle debug mode with F1
-      if (e.key === 'F1') {
-        this.debugMode = !this.debugMode;
-        e.preventDefault();
-      }
-      
-      // Toggle pause with Escape
-      if (e.key === 'Escape' && this.state === 'playing') {
-        this.state = this.state === 'paused' ? 'playing' : 'paused';
-      }
-      
-      // Dash with space bar
-      if (e.key === ' ' && this.state === 'playing' && this.player && !this.player.dashing) {
-        this.player.dash();
-      }
-    });
+    
     
     window.addEventListener('keyup', e => {
       this.keys[e.key] = false;
@@ -266,6 +249,11 @@ class RoboRebellion {
       document.getElementById('game-over').classList.add('hidden');
       document.getElementById('hud').classList.add('hidden');
       document.getElementById('start-screen').classList.remove('hidden');
+
+      if (this.musicEnabled && this.sounds.bgm) {
+        this.sounds.bgm.currentTime = 0;
+        this.playSound('bgm');
+      }
     }
   });
 
@@ -291,8 +279,6 @@ class RoboRebellion {
     this.toggleSFX();
   });
   }
-
-  
 
   togglePause() {
     if (this.state === 'playing') {
@@ -477,6 +463,37 @@ class RoboRebellion {
     
     requestAnimationFrame(this.gameLoop.bind(this));
   }
+
+  updatePlayerTrail() {
+    if (this.player) {
+      // Add current position to trail
+      this.player.trail.push({
+        x: this.player.x + this.player.width/2,
+        y: this.player.y + this.player.height/2
+      });
+      
+      // Limit trail length
+      if (this.player.trail.length > this.player.trailMax) {
+        this.player.trail.shift();
+      }
+    }
+  }
+  
+  // Render the trail
+  renderPlayerTrail() {
+    if (this.player && this.player.trail.length > 1) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.player.trail[0].x, this.player.trail[0].y);
+      
+      for (let i = 1; i < this.player.trail.length; i++) {
+        this.ctx.lineTo(this.player.trail[i].x, this.player.trail[i].y);
+      }
+      
+      this.ctx.strokeStyle = this.player.color + '80'; // Add transparency
+      this.ctx.lineWidth = 5 * (this.player.dashing ? 2 : 1); // Thicker during dash
+      this.ctx.stroke();
+    }
+  }
   
   update(deltaTime) {
     this.gameTime += deltaTime;
@@ -484,6 +501,8 @@ class RoboRebellion {
     // Update player
     if (this.player) {
       this.updatePlayer(deltaTime);
+
+      this.updatePlayerTrail();
       
       // Update camera to center on player
       this.camera.x = this.player.x - this.canvas.width / 2 + this.player.width / 2;
@@ -498,6 +517,9 @@ class RoboRebellion {
     
     // Update explosions
     this.updateExplosions(deltaTime);
+
+    // Update particles
+    this.updateParticles(deltaTime);
     
     // Update powerups
     this.updatePowerups(deltaTime);
@@ -861,6 +883,12 @@ class RoboRebellion {
       explosion.lifetime -= deltaTime;
       explosion.alpha = explosion.lifetime / 0.5; // Fade out
       
+      // Add this code to move particles:
+      if (explosion.vx !== undefined) {
+        explosion.x += explosion.vx * deltaTime;
+        explosion.y += explosion.vy * deltaTime;
+      }
+      
       // Remove expired explosions
       if (explosion.lifetime <= 0) {
         this.explosions.splice(i, 1);
@@ -1065,6 +1093,24 @@ class RoboRebellion {
       });
     }
   }
+
+  createParticles(x, y, color, count, speed, size, lifetime) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = speed * (0.5 + Math.random() * 0.5);
+      
+      this.particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * velocity,
+        vy: Math.sin(angle) * velocity,
+        size: size * (0.5 + Math.random() * 0.5),
+        color: color,
+        alpha: 1.0,
+        lifetime: lifetime * (0.8 + Math.random() * 0.4)
+      });
+    }
+  }
   
   startGame(robotType) {
     // Hide start screen, show HUD
@@ -1082,6 +1128,7 @@ class RoboRebellion {
     this.bullets = [];
     this.explosions = [];
     this.powerups = [];
+    this.particles = [];
     
     // Create player
     const robotTemplate = this.robotTypes[robotType];
@@ -1090,6 +1137,7 @@ class RoboRebellion {
       y: 1000,
       width: 40,
       height: 40,
+      type: robotType,
       color: robotTemplate.color,
       speed: robotTemplate.speed,
       health: robotTemplate.health,
@@ -1101,7 +1149,10 @@ class RoboRebellion {
       dashCooldown: 0,
       dashTime: 0,
       dashing: false,
-      invulnerable: false
+      invulnerable: false,
+      trail: [],
+      trailMax: 10,
+      trailColor: robotTemplate.color,
     };
     
     this.player.dash = () => { // Use arrow function to keep 'this' context
@@ -1138,10 +1189,10 @@ class RoboRebellion {
     // Show welcome message
     this.showMessage(`Wave ${this.wave} - Get Ready!`, 2000);
 
-     // Play music (if enabled)
-     if (this.musicEnabled) {
-      const musicBtn = document.getElementById('toggle-music');
-      if (musicBtn) musicBtn.classList.remove('muted');
+     // Play music if enabled
+    if (this.musicEnabled && this.sounds.bgm) {
+      this.sounds.bgm.currentTime = 0;
+      this.playSound('bgm');
     }
     
     if (this.sfxEnabled) {
@@ -1188,6 +1239,22 @@ class RoboRebellion {
     document.getElementById('rooms-cleared').textContent = this.wave - 1;
     document.getElementById('game-over').classList.remove('hidden');
   }
+
+  applyDamageEffect() {
+    this.ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+  
+  // Enhanced screen shake
+  applyScreenShake() {
+    if (this.screenShake > 0) {
+      const intensity = this.screenShake * 10;
+      const shakeX = (Math.random() - 0.5) * intensity;
+      const shakeY = (Math.random() - 0.5) * intensity;
+      
+      this.ctx.translate(shakeX, shakeY);
+    }
+  }
   
   render() {
     // Clear canvas
@@ -1218,6 +1285,13 @@ class RoboRebellion {
   }
   
   renderGameWorld() {
+    // Apply screen shake effect
+    if (this.screenShake > 0) {
+      this.applyScreenShake();
+      this.screenShake -= 0.016; // Reduce shake over time
+      if (this.screenShake < 0) this.screenShake = 0;
+    }
+
     // Apply camera transformation
     this.ctx.save();
     this.ctx.translate(-this.camera.x, -this.camera.y);
@@ -1229,6 +1303,16 @@ class RoboRebellion {
     this.ctx.strokeStyle = '#444444';
     this.ctx.lineWidth = 5;
     this.ctx.strokeRect(0, 0, 2000, 2000);
+
+    // Add player lighting effects if player exists
+    if (this.player) {
+      this.renderLighting();
+    }
+
+    // Draw player trail if it exists
+    if (this.player && this.player.trail) {
+      this.renderPlayerTrail();
+    }
     
     // Draw powerups
     this.powerups.forEach(powerup => {
@@ -1274,175 +1358,320 @@ class RoboRebellion {
       }
     });
     
-    // Draw enemies
-    this.enemies.forEach(enemy => {
-      // Draw enemy body
-      this.ctx.fillStyle = enemy.color;
-      this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-      
-      // Draw health bar
-      const healthPercentage = enemy.health / (30 + this.wave * 5); // Approximate max health
-      this.ctx.fillStyle = '#444444';
-      this.ctx.fillRect(enemy.x, enemy.y - 10, enemy.width, 5);
-      this.ctx.fillStyle = '#FF0000';
-      this.ctx.fillRect(enemy.x, enemy.y - 10, enemy.width * healthPercentage, 5);
-      
-      // Draw specific features based on enemy type
-      switch (enemy.type) {
-        case 'shooter':
-          // Draw gun
-          if (this.player) {
-            const angle = Math.atan2(
-              this.player.y - enemy.y,
-              this.player.x - enemy.x
-            );
-            this.ctx.save();
-            this.ctx.translate(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
-            this.ctx.rotate(angle);
-            this.ctx.fillStyle = '#444444';
-            this.ctx.fillRect(0, -2, 20, 4);
-            this.ctx.restore();
-          }
-          break;
-        case 'tank':
-          // Draw armor plating
-          this.ctx.fillStyle = '#444444';
-          this.ctx.fillRect(enemy.x + 5, enemy.y + 5, enemy.width - 10, enemy.height - 10);
-          break;
-      }
-    });
+    // Draw enemies using enhanced shapes
+  this.enemies.forEach(enemy => {
+    this.renderEnemy(enemy);
     
-    // Draw player
-    if (this.player) {
-      // Flash when invulnerable
-      if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
-        this.ctx.globalAlpha = 0.5;
-      }
-      
-      // Draw player body
-      this.ctx.fillStyle = this.player.color;
-      this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
-      
-      // Draw gun pointing toward mouse
-      const mouseWorldX = this.mouse.x + this.camera.x;
-      const mouseWorldY = this.mouse.y + this.camera.y;
-      
-      const angle = Math.atan2(
-        mouseWorldY - (this.player.y + this.player.height/2),
-        mouseWorldX - (this.player.x + this.player.width/2)
-      );
-      
-      this.ctx.save();
-      this.ctx.translate(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-      this.ctx.rotate(angle);
-      this.ctx.fillStyle = '#333333';
-      this.ctx.fillRect(0, -3, 25, 6);
-      this.ctx.restore();
-      
-      // Reset opacity
+    // Draw health bar above enemy
+    const healthPercentage = enemy.health / (enemy.type === 'tank' ? 60 + this.wave * 10 : (enemy.type === 'chaser' ? 30 + this.wave * 5 : 20 + this.wave * 3));
+    this.ctx.fillStyle = '#444444';
+    this.ctx.fillRect(enemy.x, enemy.y - 10, enemy.width, 5);
+    this.ctx.fillStyle = '#FF0000';
+    this.ctx.fillRect(enemy.x, enemy.y - 10, enemy.width * healthPercentage, 5);
+  });
+  
+  // Draw particles
+  if (this.particles) {
+    this.particles.forEach(particle => {
+      this.ctx.globalAlpha = particle.alpha;
+      this.ctx.fillStyle = particle.color;
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      this.ctx.fill();
       this.ctx.globalAlpha = 1.0;
-      
-      // Draw dash cooldown indicator
-      if (this.player.dashCooldown > 0) {
-        const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.beginPath();
-        this.ctx.arc(
-          this.player.x + this.player.width/2,
-          this.player.y + this.player.height/2,
-          this.player.width * 0.8,
-          -Math.PI/2,
-          -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
-        );
-        this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-        this.ctx.fill();
-      }
+    });
+  }
+  
+  // Draw bullets
+  this.bullets.forEach(bullet => {
+    this.ctx.fillStyle = bullet.color;
+    if (bullet.fromPlayer) {
+      // Player bullets are circular with glow
+      this.ctx.shadowColor = bullet.color;
+      this.ctx.shadowBlur = 10;
+      this.ctx.beginPath();
+      this.ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.shadowBlur = 0;
+    } else {
+      // Enemy bullets are diamonds
+      this.ctx.save();
+      this.ctx.translate(bullet.x, bullet.y);
+      this.ctx.rotate(Math.PI / 4);
+      this.ctx.fillRect(-bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
+      this.ctx.restore();
+    }
+  });
+  
+  // Draw player
+  if (this.player) {
+    // Flash when invulnerable
+    if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
+      this.ctx.globalAlpha = 0.5;
     }
     
-    // Draw bullets
-    this.bullets.forEach(bullet => {
-      this.ctx.fillStyle = bullet.color;
-      if (bullet.fromPlayer) {
-        // Player bullets are circular
-        this.ctx.beginPath();
-        this.ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
-        this.ctx.fill();
-      } else {
-        // Enemy bullets are diamonds
-        this.ctx.save();
-        this.ctx.translate(bullet.x, bullet.y);
-        this.ctx.rotate(Math.PI / 4);
-        this.ctx.fillRect(-bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
-        this.ctx.restore();
-      }
-    });
+    // Draw player with appropriate shape based on type
+    const robotType = this.player.type || 'assault';
+    this.ctx.fillStyle = this.player.color;
     
-    // Draw explosions
-    this.explosions.forEach(explosion => {
-      this.ctx.globalAlpha = explosion.alpha;
-      this.ctx.fillStyle = explosion.color;
-      
-      if (explosion.vx !== undefined) {
-        // Particle that moves
-        explosion.x += explosion.vx * 0.016; // Approx for one frame
-        explosion.y += explosion.vy * 0.016;
-        this.ctx.beginPath();
-        this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-        this.ctx.fill();
-      } else {
-        // Static explosion
-        this.ctx.beginPath();
-        this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-        this.ctx.fill();
+    if (robotType === 'assault') {
+      // Triangle shape
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
+      this.ctx.lineTo(this.player.x, this.player.y + this.player.height);
+      this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height);
+      this.ctx.closePath();
+      this.ctx.fill();
+    } else if (robotType === 'tank') {
+      // Hexagon shape
+      this.ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 3 * i;
+        const x = this.player.x + this.player.width/2 + Math.cos(angle) * this.player.width/2;
+        const y = this.player.y + this.player.height/2 + Math.sin(angle) * this.player.height/2;
+        
+        if (i === 0) this.ctx.moveTo(x, y);
+        else this.ctx.lineTo(x, y);
       }
-      
-      this.ctx.globalAlpha = 1.0;
-    });
+      this.ctx.closePath();
+      this.ctx.fill();
+    } else {
+      // Stealth: Diamond shape
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
+      this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height/2);
+      this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height);
+      this.ctx.lineTo(this.player.x, this.player.y + this.player.height/2);
+      this.ctx.closePath();
+      this.ctx.fill();
+    }
     
-    // Restore original transformation
+    // Draw gun pointing toward mouse
+    const mouseWorldX = this.mouse.x + this.camera.x;
+    const mouseWorldY = this.mouse.y + this.camera.y;
+    
+    const angle = Math.atan2(
+      mouseWorldY - (this.player.y + this.player.height/2),
+      mouseWorldX - (this.player.x + this.player.width/2)
+    );
+    
+    this.ctx.save();
+    this.ctx.translate(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
+    this.ctx.rotate(angle);
+    this.ctx.fillStyle = '#333333';
+    this.ctx.fillRect(0, -3, 25, 6);
     this.ctx.restore();
     
-    // Draw wave indicator
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.font = '24px Arial';
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText(`Wave: ${this.wave}`, 20, this.canvas.height - 20);
+    // Reset opacity
+    this.ctx.globalAlpha = 1.0;
     
-    // Draw score
-    this.ctx.textAlign = 'right';
-    this.ctx.fillText(`Score: ${this.score}`, this.canvas.width - 20, this.canvas.height - 20);
-    
-    // Draw health bar
-    if (this.player) {
-      const healthWidth = 300;
-      const healthHeight = 20;
-      const healthPercent = this.player.health / this.player.maxHealth;
-      
-      this.ctx.fillStyle = '#444444';
-      this.ctx.fillRect(20, 20, healthWidth, healthHeight);
-      
-      // Color based on health percentage
-      if (healthPercent > 0.6) {
-        this.ctx.fillStyle = '#4CAF50'; // Green
-      } else if (healthPercent > 0.3) {
-        this.ctx.fillStyle = '#FFC107'; // Yellow
-      } else {
-        this.ctx.fillStyle = '#F44336'; // Red
-      }
-      
-      this.ctx.fillRect(20, 20, healthWidth * healthPercent, healthHeight);
-      
-      this.ctx.strokeStyle = '#FFFFFF';
-      this.ctx.strokeRect(20, 20, healthWidth, healthHeight);
-      
-      this.ctx.fillStyle = '#FFFFFF';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText(
-        `${Math.floor(this.player.health)}/${this.player.maxHealth}`,
-        20 + healthWidth / 2,
-        20 + healthHeight / 2 + 7
+    // Draw dash cooldown indicator
+    if (this.player.dashCooldown > 0) {
+      const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      this.ctx.beginPath();
+      this.ctx.arc(
+        this.player.x + this.player.width/2,
+        this.player.y + this.player.height/2,
+        this.player.width * 0.8,
+        -Math.PI/2,
+        -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
       );
+      this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
+      this.ctx.fill();
     }
+  }
+  
+  // Draw explosions
+  this.explosions.forEach(explosion => {
+    this.ctx.globalAlpha = explosion.alpha;
+    this.ctx.fillStyle = explosion.color;
+    
+    if (explosion.vx !== undefined) {
+      // Particle that moves
+      // explosion.x += explosion.vx * 0.016; // Approx for one frame
+      // explosion.y += explosion.vy * 0.016;
+      this.ctx.beginPath();
+      this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+    } else {
+      // Static explosion with glow
+      this.ctx.shadowColor = explosion.color;
+      this.ctx.shadowBlur = 15;
+      this.ctx.beginPath();
+      this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.shadowBlur = 0;
+    }
+    
+    this.ctx.globalAlpha = 1.0;
+  });
+
+    
+  // Draw bullets
+  // this.bullets.forEach(bullet => {
+  //   this.ctx.fillStyle = bullet.color;
+  //   if (bullet.fromPlayer) {
+  //     // Player bullets are circular
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+  //     this.ctx.fill();
+  //   } else {
+  //     // Enemy bullets are diamonds
+  //     this.ctx.save();
+  //     this.ctx.translate(bullet.x, bullet.y);
+  //     this.ctx.rotate(Math.PI / 4);
+  //     this.ctx.fillRect(-bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
+  //     this.ctx.restore();
+  //   }
+  // });
+  
+  // Draw explosions
+  // this.explosions.forEach(explosion => {
+  //   this.ctx.globalAlpha = explosion.alpha;
+  //   this.ctx.fillStyle = explosion.color;
+    
+  //   if (explosion.vx !== undefined) {
+  //     // Particle that moves
+  //     explosion.x += explosion.vx * 0.016; // Approx for one frame
+  //     explosion.y += explosion.vy * 0.016;
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+  //     this.ctx.fill();
+  //   } else {
+  //     // Static explosion
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+  //     this.ctx.fill();
+  //   }
+    
+  //   this.ctx.globalAlpha = 1.0;
+  // });
+  
+  // Restore original transformation
+  this.ctx.restore();
+  
+  // Draw wave indicator
+  this.ctx.fillStyle = '#FFFFFF';
+  this.ctx.font = '24px Arial';
+  this.ctx.textAlign = 'left';
+  this.ctx.fillText(`Wave: ${this.wave}`, 20, this.canvas.height - 20);
+  
+  // Draw score
+  this.ctx.textAlign = 'right';
+  this.ctx.fillText(`Score: ${this.score}`, this.canvas.width - 20, this.canvas.height - 20);
+  
+  // Draw health bar
+  if (this.player) {
+    const healthWidth = 300;
+    const healthHeight = 20;
+    const healthPercent = this.player.health / this.player.maxHealth;
+    
+    this.ctx.fillStyle = '#444444';
+    this.ctx.fillRect(20, 20, healthWidth, healthHeight);
+    
+    // Color based on health percentage
+    if (healthPercent > 0.6) {
+      this.ctx.fillStyle = '#4CAF50'; // Green
+    } else if (healthPercent > 0.3) {
+      this.ctx.fillStyle = '#FFC107'; // Yellow
+    } else {
+      this.ctx.fillStyle = '#F44336'; // Red
+    }
+    
+    this.ctx.fillRect(20, 20, healthWidth * healthPercent, healthHeight);
+    
+    this.ctx.strokeStyle = '#FFFFFF';
+    this.ctx.strokeRect(20, 20, healthWidth, healthHeight);
+    
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(
+      `${Math.floor(this.player.health)}/${this.player.maxHealth}`,
+      20 + healthWidth / 2,
+      20 + healthHeight / 2 + 7
+    );
+  }
+  }
+
+  renderEnemy(enemy) {
+    this.ctx.fillStyle = enemy.color;
+    
+    switch(enemy.type) {
+      case 'chaser':
+        // Triangle shape
+        this.ctx.beginPath();
+        this.ctx.moveTo(enemy.x + enemy.width/2, enemy.y);
+        this.ctx.lineTo(enemy.x, enemy.y + enemy.height);
+        this.ctx.lineTo(enemy.x + enemy.width, enemy.y + enemy.height);
+        this.ctx.closePath();
+        this.ctx.fill();
+        break;
+        
+      case 'shooter':
+        // Diamond shape
+        this.ctx.beginPath();
+        this.ctx.moveTo(enemy.x + enemy.width/2, enemy.y);
+        this.ctx.lineTo(enemy.x + enemy.width, enemy.y + enemy.height/2);
+        this.ctx.lineTo(enemy.x + enemy.width/2, enemy.y + enemy.height);
+        this.ctx.lineTo(enemy.x, enemy.y + enemy.height/2);
+        this.ctx.closePath();
+        this.ctx.fill();
+        break;
+        
+      case 'tank':
+        // Hexagon shape
+        this.ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i;
+          const x = enemy.x + enemy.width/2 + Math.cos(angle) * enemy.width/2;
+          const y = enemy.y + enemy.height/2 + Math.sin(angle) * enemy.height/2;
+          
+          if (i === 0) this.ctx.moveTo(x, y);
+          else this.ctx.lineTo(x, y);
+        }
+        this.ctx.closePath();
+        this.ctx.fill();
+        break;
+    }
+  }
+
+  renderLighting() {
+    // Create a gradient for player light
+    const gradient = this.ctx.createRadialGradient(
+      this.player.x + this.player.width/2, 
+      this.player.y + this.player.height/2, 
+      0, 
+      this.player.x + this.player.width/2, 
+      this.player.y + this.player.height/2, 
+      200
+    );
+    
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(this.player.x - 200, this.player.y - 200, 400, 400);
+    
+    // Add smaller lights for bullets
+    this.bullets.forEach(bullet => {
+      if (bullet.fromPlayer) {
+        const bulletLight = this.ctx.createRadialGradient(
+          bullet.x + bullet.width/2, 
+          bullet.y + bullet.height/2, 
+          0, 
+          bullet.x + bullet.width/2, 
+          bullet.y + bullet.height/2, 
+          30
+        );
+        
+        bulletLight.addColorStop(0, 'rgba(255, 255, 100, 0.2)');
+        bulletLight.addColorStop(1, 'rgba(255, 255, 100, 0)');
+        
+        this.ctx.fillStyle = bulletLight;
+        this.ctx.fillRect(bullet.x - 30, bullet.y - 30, 60, 60);
+      }
+    });
   }
   
   renderGrid() {
@@ -1466,6 +1695,20 @@ class RoboRebellion {
       this.ctx.moveTo(0, y);
       this.ctx.lineTo(worldSize, y);
       this.ctx.stroke();
+    }
+
+    // Add glow to grid near player
+    if (this.player) {
+      const gradient = this.ctx.createRadialGradient(
+        this.player.x, this.player.y, 0,
+        this.player.x, this.player.y, 300
+      );
+      
+      gradient.addColorStop(0, 'rgba(63, 81, 181, 0.1)');
+      gradient.addColorStop(1, 'rgba(63, 81, 181, 0)');
+      
+      this.ctx.fillStyle = gradient;
+      this.ctx.fillRect(this.player.x - 300, this.player.y - 300, 600, 600);
     }
   }
   
@@ -1495,6 +1738,25 @@ class RoboRebellion {
     document.getElementById('health-fill').style.width = `${healthPercent}%`;
     document.getElementById('health-text').textContent = `${Math.floor(this.player.health)}/${this.player.maxHealth}`;
   }
+
+  updateParticles(deltaTime) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const particle = this.particles[i];
+      
+      // Update position
+      particle.x += particle.vx * deltaTime;
+      particle.y += particle.vy * deltaTime;
+      
+      // Update lifetime and fade
+      particle.lifetime -= deltaTime;
+      particle.alpha = particle.lifetime / (particle.lifetime + deltaTime);
+      
+      // Remove expired particles
+      if (particle.lifetime <= 0) {
+        this.particles.splice(i, 1);
+      }
+    }
+  }
   
   showMessage(text, duration = 2000) {
     const messageContainer = document.getElementById('message-container');
@@ -1517,6 +1779,31 @@ class RoboRebellion {
       a.y + a.height > b.y
     );
   }
+
+  // debugSounds() {
+  //   console.log("Sound status:");
+  //   console.log("SFX enabled:", this.sfxEnabled);
+  //   console.log("Music enabled:", this.musicEnabled);
+    
+  //   Object.entries(this.sounds).forEach(([name, sound]) => {
+  //     console.log(`${name}:`, {
+  //       readyState: sound.readyState,
+  //       paused: sound.paused,
+  //       muted: sound.muted,
+  //       volume: sound.volume,
+  //       src: sound.src
+  //     });
+      
+  //     // Try playing explosion sound directly
+  //     if (name === 'explosion') {
+  //       const explosionSound = this.sounds.explosion;
+  //       explosionSound.currentTime = 0;
+  //       explosionSound.play()
+  //         .then(() => console.log("Explosion sound played successfully"))
+  //         .catch(e => console.error("Failed to play explosion sound:", e));
+  //     }
+  //   });
+  // }
 }
 
 // Initialize game on window load
