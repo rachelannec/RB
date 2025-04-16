@@ -15,7 +15,7 @@ class RoboRebellion {
     this.waveEnemies = 0;
     this.gameTime = 0;
     this.state = 'menu';
-    
+      
     // Player
     this.player = null;
     this.robotTypes = {
@@ -66,10 +66,92 @@ class RoboRebellion {
     
     // Load assets
     this.loadAssets();
+
+    // Sound settings
+    this.musicEnabled = true;
+    this.sfxEnabled = true;
     
+    setTimeout(() => {
+      if (this.musicEnabled && this.sounds.bgm) {
+        this.playSound('bgm');
+      }
+    }, 1000);
+
+    // Update UI to match initial state
+    setTimeout(() => {
+      this.updateMusicButtonUI();
+      this.updateSFXButtonUI();
+    }, 100);
+
     // Start the game loop
     this.lastTime = performance.now();
     requestAnimationFrame(this.gameLoop.bind(this));
+  }
+
+  initializeAudio() {
+    // Create a function to handle audio unlocking
+    const unlockAudio = () => {
+      if (this.audioInitialized) return;
+      
+      console.log("Initializing audio...");
+      
+      // Try to play and immediately pause all sounds to "unlock" them
+      Object.values(this.sounds).forEach(sound => {
+        sound.play()
+          .then(() => {
+            sound.pause();
+            sound.currentTime = 0;
+          })
+          .catch(e => console.log("Could not initialize audio:", e));
+      });
+      
+      this.audioInitialized = true;
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+  
+    // Execute immediately to try initialization
+    unlockAudio();
+    
+    // Also add event listeners for later user interaction
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+  }
+
+  // playSound(name) {
+  //   if (!this.sounds[name]) return;
+    
+  //   // Reset the sound if it's already playing
+  //   const sound = this.sounds[name];
+  //   sound.currentTime = 0;
+    
+  //   // Play with proper error handling
+  //   sound.play().catch(error => {
+  //     // If sound fails, just log it and continue (don't break the game)
+  //     console.log(`Error playing ${name} sound:`, error);
+  //   });
+  // }
+
+  // Add this method for saving sound preferences
+  saveSoundPreferences() {
+    localStorage.setItem('roboRebellion_musicEnabled', this.musicEnabled);
+    localStorage.setItem('roboRebellion_sfxEnabled', this.sfxEnabled);
+  }
+
+  // Add this method for loading sound preferences
+  loadSoundPreferences() {
+    const musicPref = localStorage.getItem('roboRebellion_musicEnabled');
+    const sfxPref = localStorage.getItem('roboRebellion_sfxEnabled');
+    
+    if (musicPref !== null) {
+      this.musicEnabled = musicPref === 'true';
+      this.updateMusicButtonUI();
+    }
+    
+    if (sfxPref !== null) {
+      this.sfxEnabled = sfxPref === 'true';
+      this.updateSFXButtonUI();
+    }
   }
   
   setupEventListeners() {
@@ -186,48 +268,31 @@ class RoboRebellion {
       document.getElementById('start-screen').classList.remove('hidden');
     }
   });
-  }
 
-  initializeAudio() {
-    // Create a function to handle audio unlocking
-    const unlockAudio = () => {
-      if (this.audioInitialized) return;
-      
-      console.log("Initializing audio...");
-      
-      // Try to play and immediately pause all sounds to "unlock" them
-      Object.values(this.sounds).forEach(sound => {
-        sound.play()
-          .then(() => {
-            sound.pause();
-            sound.currentTime = 0;
-          })
-          .catch(e => console.log("Could not initialize audio:", e));
-      });
-      
-      this.audioInitialized = true;
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('keydown', unlockAudio);
-    };
+  // Volume control
+  document.getElementById('toggle-mute').addEventListener('click', () => {
+    if (this.sounds.bgm) {
+      if (this.sounds.bgm.volume > 0) {
+        this.sounds.bgm.volume = 0;
+        document.getElementById('toggle-mute').textContent = '🔇';
+      } else {
+        this.sounds.bgm.volume = 0.3;
+        document.getElementById('toggle-mute').textContent = '🔊';
+      }
+    }
+  });
+
+  // Add sound control listeners
+  document.getElementById('toggle-music').addEventListener('click', () => {
+    this.toggleMusic();
+  });
   
-    // Add event listeners to unlock audio on user interaction
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
+  document.getElementById('toggle-sfx').addEventListener('click', () => {
+    this.toggleSFX();
+  });
   }
 
-  playSound(name) {
-    if (!this.sounds[name]) return;
-    
-    // Reset the sound if it's already playing
-    const sound = this.sounds[name];
-    sound.currentTime = 0;
-    
-    // Play with proper error handling
-    sound.play().catch(error => {
-      // If sound fails, just log it and continue (don't break the game)
-      console.log(`Error playing ${name} sound:`, error);
-    });
-  }
+  
 
   togglePause() {
     if (this.state === 'playing') {
@@ -235,12 +300,23 @@ class RoboRebellion {
       this.state = 'paused';
       document.getElementById('pause-screen').classList.remove('hidden');
       console.log("Game paused");
+
+      // pause bgm
+      if (this.sounds.bgm) {
+        this.sounds.bgm.pause();
+      }
+      console.log("Game paused");
     } else if (this.state === 'paused') {
       // Resume the game
       this.state = 'playing';
       document.getElementById('pause-screen').classList.add('hidden');
       this.lastTime = performance.now(); // Reset the timer to prevent huge jumps
       console.log("Game resumed");
+
+      // Resume BGM
+    if (this.sounds.bgm) {
+      this.sounds.bgm.play().catch(e => console.log("Error resuming BGM:", e));
+    }
     }
     // if (this.state === 'playing') {
     //   this.state = 'paused';
@@ -255,25 +331,137 @@ class RoboRebellion {
     // }
   }
   
+  toggleMusic() {
+    this.musicEnabled = !this.musicEnabled;
+    
+    if (this.musicEnabled) {
+      // Resume music if game is playing
+      if (this.state === 'playing' && this.sounds.bgm) {
+        this.sounds.bgm.play().catch(e => console.log("Error playing BGM:", e));
+      }
+    } else {
+      // Pause music
+      if (this.sounds.bgm) {
+        this.sounds.bgm.pause();
+      }
+    }
+    
+    // Update UI
+    this.updateMusicButtonUI();
+    
+    // Save preference
+    this.saveSoundPreferences();
+  }
+  
+  toggleSFX() {
+    this.sfxEnabled = !this.sfxEnabled;
+    
+    // Update UI
+    this.updateSFXButtonUI();
+    
+    // Save preference
+    this.saveSoundPreferences();
+  }
+  
+  updateMusicButtonUI() {
+    const musicBtn = document.getElementById('toggle-music');
+    if (musicBtn) {
+      if (this.musicEnabled) {
+        musicBtn.textContent = '🎵';
+        musicBtn.classList.remove('muted');
+      } else {
+        musicBtn.textContent = '🎵';
+        musicBtn.classList.add('muted');
+      }
+    }
+  }
+  
+  updateSFXButtonUI() {
+    const sfxBtn = document.getElementById('toggle-sfx');
+    if (sfxBtn) {
+      if (this.sfxEnabled) {
+        sfxBtn.textContent = '🔊';
+        sfxBtn.classList.remove('muted');
+      } else {
+        sfxBtn.textContent = '🔊';
+        sfxBtn.classList.add('muted');
+      }
+    }
+  }
+  
+  // Update your playSound method to respect preferences
+  playSound(name) {
+    // Check if the sound exists first
+    if (!this.sounds[name]) {
+      console.warn(`Sound "${name}" not found`);
+      return;
+    }
+    
+    // Don't play SFX if disabled (except BGM)
+    if (!this.sfxEnabled && name !== 'bgm') return;
+    
+    // Don't play BGM if music is disabled
+    if (!this.musicEnabled && name === 'bgm') return;
+    
+    // Get the sound object
+    const sound = this.sounds[name];
+    
+    // Set looping for background music
+    if (name === 'bgm') {
+      sound.loop = true;
+    }
+    
+    // Reset the sound if it's already playing
+    sound.currentTime = 0;
+    
+    // Play with proper error handling
+    sound.play().catch(error => {
+      console.log(`Error playing ${name} sound:`, error);
+      
+      // Try alternative approach for mobile browsers
+      if (name === 'bgm' && error.name === 'NotAllowedError') {
+        console.log('Browser blocked autoplay. Waiting for user interaction.');
+        
+        // Add one-time listener to enable audio on next interaction
+        const enableAudio = () => {
+          sound.play().catch(e => console.log('Still unable to play audio:', e));
+          document.removeEventListener('click', enableAudio);
+        };
+        document.addEventListener('click', enableAudio);
+      }
+    });
+  }
   
   loadAssets() {
-    // Load sounds
-    this.initializeAudio();
-
+    
     this.sounds = {
       shoot: new Audio('assets/sounds/shoot.mp3'),
       explosion: new Audio('assets/sounds/explosion.mp3'),
       powerup: new Audio('assets/sounds/powerup.mp3'),
       hit: new Audio('assets/sounds/hit.mp3'),
-      gameOver: new Audio('assets/sounds/gameover.mp3')
+      hit2: new Audio('assets/sounds/hit2.mp3'),
+      hit3: new Audio('assets/sounds/hit3.mp3'),
+      gameOver: new Audio('assets/sounds/gameover.mp3'),
+      bgm: new Audio('assets/sounds/bgm.mp3')
     };
     
     // For performance, preload and configure sounds
-    Object.values(this.sounds).forEach(sound => {
-      sound.volume = 0.3;
-      sound.load();
+    Object.entries(this.sounds).forEach(([name, sound]) => {
+    sound.volume = 0.3;
+    sound.load();
+
+    sound.addEventListener('error', (e) => {
+      console.error(`Error loading sound ${name}:`, e);
     });
+  });
+
+    // Load sounds
+    this.initializeAudio();
+
+    this.loadSoundPreferences();
   }
+
+  
   
   gameLoop(timestamp) {
     // Calculate delta time (capped at 100ms to prevent huge jumps)
@@ -401,8 +589,7 @@ class RoboRebellion {
     });
     
     // Play sound
-    this.sounds.shoot.currentTime = 0;
-    this.sounds.shoot.play().catch(e => console.log("Audio error:", e));
+    this.playSound('shoot');
     
     // Add muzzle flash effect
     this.explosions.push({
@@ -453,9 +640,8 @@ class RoboRebellion {
             });
             
             // Play hit sound
-            this.sounds.hit.currentTime = 0;
-            this.sounds.hit.play().catch(e => {});
-            
+            this.playSound('hit');
+
             // Remove bullet
             this.bullets.splice(i, 1);
             
@@ -500,6 +686,8 @@ class RoboRebellion {
           
           // Apply screen shake
           this.screenShake = 0.2;
+
+          this.playSound('hit2');
           
           // Remove bullet
           this.bullets.splice(i, 1);
@@ -541,6 +729,9 @@ class RoboRebellion {
       if (this.player && !this.player.invulnerable && this.checkCollision(enemy, this.player)) {
         // Damage player
         this.player.health -= enemy.contactDamage;
+
+        // Play player hit sound
+        this.playSound('hit3');
         
         // Update health bar
         this.updateHealthBar();
@@ -672,8 +863,6 @@ class RoboRebellion {
       }
     }
   }
-
-  
   
   updatePowerups(deltaTime) {
     for (let i = this.powerups.length - 1; i >= 0; i--) {
@@ -709,8 +898,7 @@ class RoboRebellion {
         }
         
         // Play sound
-        this.sounds.powerup.currentTime = 0;
-        this.sounds.powerup.play().catch(e => {});
+        this.playSound('powerup');
         
         // Show message
         this.showMessage(`${powerup.name} acquired!`, 2000);
@@ -854,8 +1042,7 @@ class RoboRebellion {
     });
     
     // Play sound
-    this.sounds.explosion.currentTime = 0;
-    this.sounds.explosion.play().catch(e => {});
+    this.playSound('explosion');
     
     // Add particle effects
     for (let i = 0; i < 15; i++) {
@@ -913,22 +1100,19 @@ class RoboRebellion {
       invulnerable: false
     };
     
-    // Add dash method to player
-    this.player.dash = function() {
-      if (this.dashCooldown <= 0) {
+    this.player.dash = () => { // Use arrow function to keep 'this' context
+      if (this.player.dashCooldown <= 0) {
         // Set dashing state
-        this.dashing = true;
-        this.invulnerable = true;
-        this.dashTime = 0.2; // 0.2 seconds of dash
+        this.player.dashing = true;
+        this.player.invulnerable = true;
+        this.player.dashTime = 0.2;
+        this.player.dashCooldown = 3;
         
-        // Add cooldown
-        this.dashCooldown = 3; // 3 second cooldown
-        
-        // Add dash effect
+        // Add dash effect - now using main game's explosions array
         for (let i = 0; i < 10; i++) {
-          this.game.explosions.push({
-            x: this.x + this.width/2,
-            y: this.y + this.height/2,
+          this.explosions.push({
+            x: this.player.x + this.player.width/2,
+            y: this.player.y + this.player.height/2,
             radius: 5,
             color: '#FFFFFF',
             alpha: 0.7,
@@ -940,6 +1124,8 @@ class RoboRebellion {
     
     // Set up first wave
     this.waveEnemies = 5;
+
+
     
     // Update UI
     this.updateHealthBar();
@@ -947,6 +1133,22 @@ class RoboRebellion {
     
     // Show welcome message
     this.showMessage(`Wave ${this.wave} - Get Ready!`, 2000);
+
+     // Play music (if enabled)
+     if (this.musicEnabled) {
+      const musicBtn = document.getElementById('toggle-music');
+      if (musicBtn) musicBtn.classList.remove('muted');
+    }
+    
+    if (this.sfxEnabled) {
+      const sfxBtn = document.getElementById('toggle-sfx');
+      if (sfxBtn) sfxBtn.classList.remove('muted');
+    }
+
+    // play musig
+    // this.sounds.bgm.currentTime = 0;s
+
+    // this.player.game = this;
   }
   
   startNextWave() {
@@ -966,9 +1168,15 @@ class RoboRebellion {
   gameOver() {
     // Set state
     this.state = 'gameover';
+
+    // stop bgm
+    if (this.sounds.bgm) {
+      this.sounds.bgm.pause();
+      this.sounds.bgm.currentTime = 0;
+    }
     
     // Play game over sound
-    this.sounds.gameOver.play().catch(e => {});
+    this.playSound('gameOver');
     
     // Hide HUD, show game over screen
     document.getElementById('hud').classList.add('hidden');
