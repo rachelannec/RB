@@ -561,9 +561,24 @@ class RoboRebellion {
       }
     }
     
+    // Calculate velocities based on movement input
+    const targetVelocityX = moveX * this.player.speed;
+    const targetVelocityY = moveY * this.player.speed;
+    
+    // Apply smooth acceleration/deceleration
+    const smoothing = this.player.dashing ? 0.8 : 0.3;
+    this.player.velocityX += (targetVelocityX - this.player.velocityX) * smoothing;
+    this.player.velocityY += (targetVelocityY - this.player.velocityY) * smoothing;
+    
     // Apply movement
-    this.player.x += moveX * this.player.speed * deltaTime;
-    this.player.y += moveY * this.player.speed * deltaTime;
+    this.player.x += this.player.velocityX * deltaTime;
+    this.player.y += this.player.velocityY * deltaTime;
+    
+    // Calculate current speed (magnitude of velocity)
+    this.player.currentSpeed = Math.sqrt(
+      this.player.velocityX * this.player.velocityX + 
+      this.player.velocityY * this.player.velocityY
+    );
     
     // Keep player within world bounds (larger area for gameplay)
     const worldSize = 2000;
@@ -1153,6 +1168,10 @@ class RoboRebellion {
       trail: [],
       trailMax: 10,
       trailColor: robotTemplate.color,
+      faceMouseWhileMoving: true,
+      velocityX: 0,
+      velocityY: 0,
+      currentSpeed: 0
     };
     
     this.player.dash = () => { // Use arrow function to keep 'this' context
@@ -1257,12 +1276,15 @@ class RoboRebellion {
   }
   
   render() {
+    // Calculate a delta time for animations
+    const renderDelta = 1/60;
+
     // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Draw game world
+    // Draw game world - pass the renderDelta
     if (this.state === 'playing' || this.state === 'paused') {
-      this.renderGameWorld();
+      this.renderGameWorld(renderDelta);
     }
     
     // Draw UI overlay for paused state
@@ -1284,7 +1306,7 @@ class RoboRebellion {
     }
   }
   
-  renderGameWorld() {
+  renderGameWorld(deltaTime) {
     // Apply screen shake effect
     if (this.screenShake > 0) {
       this.applyScreenShake();
@@ -1315,7 +1337,7 @@ class RoboRebellion {
       }
       
       // The player itself (using dedicated method)
-      this.renderPlayer();
+      this.renderPlayer(deltaTime);
     }
     
     // Draw powerups
@@ -1407,86 +1429,7 @@ class RoboRebellion {
     }
   });
   
-  // Draw player
-  // if (this.player) {
-  //   // Flash when invulnerable
-  //   if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
-  //     this.ctx.globalAlpha = 0.5;
-  //   }
-    
-  //   // Draw player with appropriate shape based on type
-  //   const robotType = this.player.type || 'assault';
-  //   this.ctx.fillStyle = this.player.color;
-    
-  //   if (robotType === 'assault') {
-  //     // Triangle shape
-  //     this.ctx.beginPath();
-  //     this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
-  //     this.ctx.lineTo(this.player.x, this.player.y + this.player.height);
-  //     this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height);
-  //     this.ctx.closePath();
-  //     this.ctx.fill();
-  //   } else if (robotType === 'tank') {
-  //     // Hexagon shape
-  //     this.ctx.beginPath();
-  //     for (let i = 0; i < 6; i++) {
-  //       const angle = Math.PI / 3 * i;
-  //       const x = this.player.x + this.player.width/2 + Math.cos(angle) * this.player.width/2;
-  //       const y = this.player.y + this.player.height/2 + Math.sin(angle) * this.player.height/2;
-        
-  //       if (i === 0) this.ctx.moveTo(x, y);
-  //       else this.ctx.lineTo(x, y);
-  //     }
-  //     this.ctx.closePath();
-  //     this.ctx.fill();
-  //   } else {
-  //     // Stealth: Diamond shape
-  //     this.ctx.beginPath();
-  //     this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
-  //     this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height/2);
-  //     this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height);
-  //     this.ctx.lineTo(this.player.x, this.player.y + this.player.height/2);
-  //     this.ctx.closePath();
-  //     this.ctx.fill();
-  //   }
-    
-  //   // Draw gun pointing toward mouse
-  //   const mouseWorldX = this.mouse.x + this.camera.x;
-  //   const mouseWorldY = this.mouse.y + this.camera.y;
-    
-  //   const angle = Math.atan2(
-  //     mouseWorldY - (this.player.y + this.player.height/2),
-  //     mouseWorldX - (this.player.x + this.player.width/2)
-  //   );
-    
-  //   this.ctx.save();
-  //   this.ctx.translate(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-  //   this.ctx.rotate(angle);
-  //   this.ctx.fillStyle = '#333333';
-  //   this.ctx.fillRect(0, -3, 25, 6);
-  //   this.ctx.restore();
-    
-  //   // Reset opacity
-  //   this.ctx.globalAlpha = 1.0;
-    
-  //   // Draw dash cooldown indicator
-  //   if (this.player.dashCooldown > 0) {
-  //     const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
-  //     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-  //     this.ctx.beginPath();
-  //     this.ctx.arc(
-  //       this.player.x + this.player.width/2,
-  //       this.player.y + this.player.height/2,
-  //       this.player.width * 0.8,
-  //       -Math.PI/2,
-  //       -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
-  //     );
-  //     this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-  //     this.ctx.fill();
-  //   }
-  // }
   
-  // Draw explosions
   // 10. Explosions
   this.explosions.forEach(explosion => {
     this.ctx.globalAlpha = explosion.alpha;
@@ -1524,37 +1467,6 @@ class RoboRebellion {
   this.ctx.textAlign = 'right';
   this.ctx.fillText(`Score: ${this.score}`, this.canvas.width - 20, this.canvas.height - 20);
   
-  // // Draw health bar
-  // if (this.player) {
-  //   const healthWidth = 300;
-  //   const healthHeight = 20;
-  //   const healthPercent = this.player.health / this.player.maxHealth;
-    
-  //   this.ctx.fillStyle = '#444444';
-  //   this.ctx.fillRect(20, 20, healthWidth, healthHeight);
-    
-  //   // Color based on health percentage
-  //   if (healthPercent > 0.6) {
-  //     this.ctx.fillStyle = '#4CAF50'; // Green
-  //   } else if (healthPercent > 0.3) {
-  //     this.ctx.fillStyle = '#FFC107'; // Yellow
-  //   } else {
-  //     this.ctx.fillStyle = '#F44336'; // Red
-  //   }
-    
-  //   this.ctx.fillRect(20, 20, healthWidth * healthPercent, healthHeight);
-    
-  //   this.ctx.strokeStyle = '#FFFFFF';
-  //   this.ctx.strokeRect(20, 20, healthWidth, healthHeight);
-    
-  //   this.ctx.fillStyle = '#FFFFFF';
-  //   this.ctx.textAlign = 'center';
-  //   this.ctx.fillText(
-  //     `${Math.floor(this.player.health)}/${this.player.maxHealth}`,
-  //     20 + healthWidth / 2,
-  //     20 + healthHeight / 2 + 7
-  //   );
-  // }
   }
 
   renderEnemy(enemy) {
@@ -1599,27 +1511,186 @@ class RoboRebellion {
     }
   }
 
-  renderPlayer(){
-    if (!this.player) return;
+  // renderPlayer(){
+
   
+  //   if (!this.player) return;
+  
+  //   // Flash when invulnerable
+  //   if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
+  //     this.ctx.globalAlpha = 0.5;
+  //   }
+    
+  //   const x = this.player.x;
+  //   const y = this.player.y;
+  //   const w = this.player.width;
+  //   const h = this.player.height;
+  //   const robotType = this.player.type || 'assault';
+    
+  //   // Calculate angle to face mouse
+  //   const mouseWorldX = this.mouse.x + this.camera.x;
+  //   const mouseWorldY = this.mouse.y + this.camera.y;
+  //   const angle = Math.atan2(
+  //     mouseWorldY - (y + h/2),
+  //     mouseWorldX - (x + w/2)
+  //   );
+    
+  //   // Save context for rotation
+  //   this.ctx.save();
+  //   this.ctx.translate(x + w/2, y + h/2);
+  //   this.ctx.rotate(angle);
+    
+  //   // Base color from robot type
+  //   const color = this.player.color;
+    
+  //   // Draw robot body based on type
+  //   if (robotType === 'assault') {
+  //     // Assault robot - sleek, fast-looking design
+      
+  //     // Main body (triangular)
+  //     this.ctx.fillStyle = color;
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(w/2, -h/2);
+  //     this.ctx.lineTo(-w/2, h/3);
+  //     this.ctx.lineTo(w/2, h/2);
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+      
+  //     // Secondary color accent
+  //     this.ctx.fillStyle = this.shadeColor(color, -30);
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(w/2, -h/4);
+  //     this.ctx.lineTo(-w/4, h/4);
+  //     this.ctx.lineTo(w/2, h/4);
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+      
+  //     // Robot eye/visor
+  //     this.ctx.fillStyle = '#FFFFFF';
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(w/4, -h/8, h/10, 0, Math.PI * 2);
+  //     this.ctx.fill();
+      
+  //     // Glowing eye effect
+  //     this.ctx.fillStyle = '#88CCFF';
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(w/4, -h/8, h/15, 0, Math.PI * 2);
+  //     this.ctx.fill();
+      
+  //   } else if (robotType === 'tank') {
+  //     // Tank robot - bulky, heavy design
+      
+  //     // Main body (hexagon)
+  //     this.ctx.fillStyle = color;
+  //     this.ctx.beginPath();
+  //     for (let i = 0; i < 6; i++) {
+  //       const angle = Math.PI / 3 * i;
+  //       const xPos = Math.cos(angle) * w/2;
+  //       const yPos = Math.sin(angle) * h/2;
+  //       if (i === 0) this.ctx.moveTo(xPos, yPos);
+  //       else this.ctx.lineTo(xPos, yPos);
+  //     }
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+      
+  //     // Armor plates
+  //     this.ctx.fillStyle = this.shadeColor(color, -30);
+  //     this.ctx.beginPath();
+  //     this.ctx.fillRect(-w/4, -h/4, w/2, h/2);
+      
+  //     // Dual robot eyes
+  //     this.ctx.fillStyle = '#FF3300';
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(w/6, -h/6, h/12, 0, Math.PI * 2);
+  //     this.ctx.fill();
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(-w/6, -h/6, h/12, 0, Math.PI * 2);
+  //     this.ctx.fill();
+      
+  //   } else {
+  //     // Stealth robot - angular, sleek design
+      
+  //     // Main body (diamond)
+  //     this.ctx.fillStyle = color;
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(0, -h/2);
+  //     this.ctx.lineTo(w/2, 0);
+  //     this.ctx.lineTo(0, h/2);
+  //     this.ctx.lineTo(-w/2, 0);
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+      
+  //     // Accent lines
+  //     this.ctx.strokeStyle = this.shadeColor(color, -40);
+  //     this.ctx.lineWidth = 2;
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(-w/3, -h/5);
+  //     this.ctx.lineTo(w/3, -h/5);
+  //     this.ctx.stroke();
+      
+  //     // Robot eye (slim visor)
+  //     this.ctx.fillStyle = '#00FFCC';
+  //     this.ctx.fillRect(-w/4, -h/4, w/2, h/10);
+  //   }
+    
+  //   // Draw gun/weapon
+  //   this.ctx.fillStyle = '#333333';
+  //   this.ctx.fillRect(0, -3, 25, 6);
+    
+  //   // Restore context
+  //   this.ctx.restore();
+    
+  //   // Reset opacity
+  //   this.ctx.globalAlpha = 1.0;
+    
+  //   // Draw dash cooldown indicator
+  //   if (this.player.dashCooldown > 0) {
+  //     const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
+  //     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(
+  //       x + w/2, y + h/2,
+  //       w * 0.8,
+  //       -Math.PI/2,
+  //       -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
+  //     );
+  //     this.ctx.lineTo(x + w/2, y + h/2);
+  //     this.ctx.fill();
+  //   }
+  // }
+
+  // helper function to lighten/darken colors
+  
+  renderPlayer(deltaTime) {
+    if (!this.player) return;
+    
+    // Calculate movement animation offsets using sine wave
+    const walkCycle = Math.sin(this.gameTime * 5); // Speed multiplier
+    const armSwing = walkCycle * 0.2;
+    const legSwing = walkCycle * 0.3;
+    const bodyBob = Math.abs(walkCycle) * 3;
+    
     // Flash when invulnerable
     if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
       this.ctx.globalAlpha = 0.5;
     }
     
     const x = this.player.x;
-    const y = this.player.y;
+    const y = this.player.y - bodyBob; // Apply vertical bobbing
     const w = this.player.width;
     const h = this.player.height;
     const robotType = this.player.type || 'assault';
+    const isMoving = this.player.velocityX !== 0 || this.player.velocityY !== 0;
     
-    // Calculate angle to face mouse
-    const mouseWorldX = this.mouse.x + this.camera.x;
-    const mouseWorldY = this.mouse.y + this.camera.y;
-    const angle = Math.atan2(
-      mouseWorldY - (y + h/2),
-      mouseWorldX - (x + w/2)
-    );
+    // Calculate angle to face mouse or movement direction
+    let angle;
+    if (isMoving && !this.player.faceMouseWhileMoving) {
+      angle = Math.atan2(this.player.velocityY, this.player.velocityX);
+    } else {
+      const mouseWorldX = this.mouse.x + this.camera.x;
+      const mouseWorldY = this.mouse.y + this.camera.y;
+      angle = Math.atan2(mouseWorldY - (y + h/2), mouseWorldX - (x + w/2));
+    }
     
     // Save context for rotation
     this.ctx.save();
@@ -1628,100 +1699,155 @@ class RoboRebellion {
     
     // Base color from robot type
     const color = this.player.color;
+    const darkColor = this.shadeColor(color, -30);
+    const lightColor = this.shadeColor(color, 30);
     
-    // Draw robot body based on type
+    // Draw robot body based on type (top-down humanoid view)
     if (robotType === 'assault') {
-      // Assault robot - sleek, fast-looking design
+      // Head (smaller circle at top)
+      this.ctx.fillStyle = lightColor;
+      this.ctx.beginPath();
+      this.ctx.arc(0, -h/4, w/5, 0, Math.PI * 2);
+      this.ctx.fill();
       
-      // Main body (triangular)
+      // Eyes - blink when not moving
+      const eyeOpen = !isMoving || Math.floor(this.gameTime * 5) % 4 !== 0;
+      if (eyeOpen) {
+        this.ctx.fillStyle = '#88CCFF';
+        this.ctx.beginPath();
+        this.ctx.arc(-w/10, -h/4, w/15, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(w/10, -h/4, w/15, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+      
+      // Body (oval) - leans forward when moving
+      const bodyLean = isMoving ? walkCycle * 0.05 : 0;
       this.ctx.fillStyle = color;
+      this.ctx.save();
+      this.ctx.rotate(bodyLean);
       this.ctx.beginPath();
-      this.ctx.moveTo(w/2, -h/2);
-      this.ctx.lineTo(-w/2, h/3);
-      this.ctx.lineTo(w/2, h/2);
-      this.ctx.closePath();
+      this.ctx.ellipse(0, h/8, w/3, h/3, 0, 0, Math.PI * 2);
       this.ctx.fill();
       
-      // Secondary color accent
-      this.ctx.fillStyle = this.shadeColor(color, -30);
-      this.ctx.beginPath();
-      this.ctx.moveTo(w/2, -h/4);
-      this.ctx.lineTo(-w/4, h/4);
-      this.ctx.lineTo(w/2, h/4);
-      this.ctx.closePath();
-      this.ctx.fill();
+      // Arms - swing when moving
+      this.ctx.fillStyle = darkColor;
+      const leftArmRot = isMoving ? armSwing : 0;
+      const rightArmRot = isMoving ? -armSwing : 0;
       
-      // Robot eye/visor
-      this.ctx.fillStyle = '#FFFFFF';
-      this.ctx.beginPath();
-      this.ctx.arc(w/4, -h/8, h/10, 0, Math.PI * 2);
-      this.ctx.fill();
+      // Left arm
+      this.ctx.save();
+      this.ctx.rotate(leftArmRot);
+      this.ctx.fillRect(-w/2, -h/8, w/4, h/5);
+      this.ctx.restore();
       
-      // Glowing eye effect
-      this.ctx.fillStyle = '#88CCFF';
-      this.ctx.beginPath();
-      this.ctx.arc(w/4, -h/8, h/15, 0, Math.PI * 2);
-      this.ctx.fill();
+      // Right arm
+      this.ctx.save();
+      this.ctx.rotate(rightArmRot);
+      this.ctx.fillRect(w/4, -h/8, w/4, h/5);
+      this.ctx.restore();
+      
+      this.ctx.restore(); // Restore body rotation
       
     } else if (robotType === 'tank') {
-      // Tank robot - bulky, heavy design
-      
-      // Main body (hexagon)
-      this.ctx.fillStyle = color;
+      // Head (armored helmet) - minimal movement
+      this.ctx.fillStyle = darkColor;
       this.ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = Math.PI / 3 * i;
-        const xPos = Math.cos(angle) * w/2;
-        const yPos = Math.sin(angle) * h/2;
-        if (i === 0) this.ctx.moveTo(xPos, yPos);
-        else this.ctx.lineTo(xPos, yPos);
-      }
+      this.ctx.arc(0, -h/4, w/4, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Helmet visor - pulses when moving
+      const visorAlpha = isMoving ? 0.5 + Math.abs(walkCycle) * 0.5 : 1;
+      this.ctx.fillStyle = `rgba(255, 50, 50, ${visorAlpha})`;
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, -h/4, w/6, h/12, 0, 0, Math.PI);
+      this.ctx.fill();
+      
+      // Bulky body (wider rectangle) - slight wobble
+      const bodyWobble = isMoving ? walkCycle * 0.03 : 0;
+      this.ctx.save();
+      this.ctx.rotate(bodyWobble);
+      this.ctx.fillStyle = color;
+      this.ctx.fillRect(-w/2.5, -h/8, w/1.25, h/1.5);
+      
+      // Shoulder pads - move slightly
+      this.ctx.fillStyle = darkColor;
+      this.ctx.beginPath();
+      this.ctx.arc(-w/2.5, legSwing*5, w/6, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.beginPath();
+      this.ctx.arc(w/2.5, -legSwing*5, w/6, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Armor details (chest plate)
+      this.ctx.fillStyle = lightColor;
+      this.ctx.beginPath();
+      this.ctx.moveTo(-w/5, -h/8);
+      this.ctx.lineTo(w/5, -h/8);
+      this.ctx.lineTo(w/6, h/4);
+      this.ctx.lineTo(-w/6, h/4);
       this.ctx.closePath();
       this.ctx.fill();
       
-      // Armor plates
-      this.ctx.fillStyle = this.shadeColor(color, -30);
-      this.ctx.beginPath();
-      this.ctx.fillRect(-w/4, -h/4, w/2, h/2);
-      
-      // Dual robot eyes
-      this.ctx.fillStyle = '#FF3300';
-      this.ctx.beginPath();
-      this.ctx.arc(w/6, -h/6, h/12, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.beginPath();
-      this.ctx.arc(-w/6, -h/6, h/12, 0, Math.PI * 2);
-      this.ctx.fill();
+      this.ctx.restore();
       
     } else {
-      // Stealth robot - angular, sleek design
-      
-      // Main body (diamond)
-      this.ctx.fillStyle = color;
+      // Stealth robot - fluid, ninja-like movements
+      // Hooded head - slight tilt when moving
+      const headTilt = isMoving ? walkCycle * 0.1 : 0;
+      this.ctx.save();
+      this.ctx.rotate(headTilt);
+      this.ctx.fillStyle = darkColor;
       this.ctx.beginPath();
-      this.ctx.moveTo(0, -h/2);
-      this.ctx.lineTo(w/2, 0);
-      this.ctx.lineTo(0, h/2);
-      this.ctx.lineTo(-w/2, 0);
-      this.ctx.closePath();
+      this.ctx.arc(0, -h/4, w/5, 0, Math.PI * 2);
       this.ctx.fill();
       
-      // Accent lines
-      this.ctx.strokeStyle = this.shadeColor(color, -40);
+      // Face/mask - pulses when moving
+      const maskBrightness = isMoving ? 100 + Math.abs(walkCycle) * 100 : 200;
+      this.ctx.fillStyle = `rgb(0, ${maskBrightness}, ${maskBrightness})`;
+      this.ctx.fillRect(-w/8, -h/4, w/4, h/12);
+      this.ctx.restore();
+      
+      // Slim body - fluid motion
+      const bodyFlow = isMoving ? walkCycle * 0.1 : 0;
+      this.ctx.save();
+      this.ctx.rotate(bodyFlow);
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, h/8, w/4, h/3, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Sleek armor details
+      this.ctx.strokeStyle = lightColor;
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
-      this.ctx.moveTo(-w/3, -h/5);
-      this.ctx.lineTo(w/3, -h/5);
+      this.ctx.moveTo(-w/5, 0);
+      this.ctx.lineTo(w/5, 0);
       this.ctx.stroke();
       
-      // Robot eye (slim visor)
-      this.ctx.fillStyle = '#00FFCC';
-      this.ctx.fillRect(-w/4, -h/4, w/2, h/10);
+      // Arms - fluid motion
+      const leftArmFlow = isMoving ? armSwing * 1.5 : 0;
+      const rightArmFlow = isMoving ? -armSwing * 1.5 : 0;
+      
+      this.ctx.save();
+      this.ctx.rotate(leftArmFlow);
+      this.ctx.fillStyle = darkColor;
+      this.ctx.fillRect(-w/2.2, -h/10, w/4, h/8);
+      this.ctx.restore();
+      
+      this.ctx.save();
+      this.ctx.rotate(rightArmFlow);
+      this.ctx.fillRect(w/4.5, -h/10, w/4, h/8);
+      this.ctx.restore();
+      
+      this.ctx.restore();
     }
     
-    // Draw gun/weapon
+    // Draw gun/weapon extending from center - slight recoil when moving
+    const recoilOffset = isMoving ? Math.abs(walkCycle) * 2 : 0;
     this.ctx.fillStyle = '#333333';
-    this.ctx.fillRect(0, -3, 25, 6);
+    this.ctx.fillRect(recoilOffset, -3, 25 - recoilOffset, 6);
     
     // Restore context
     this.ctx.restore();
@@ -1731,7 +1857,7 @@ class RoboRebellion {
     
     // Draw dash cooldown indicator
     if (this.player.dashCooldown > 0) {
-      const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
+      const dashPercent = this.player.dashCooldown / 3;
       this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       this.ctx.beginPath();
       this.ctx.arc(
@@ -1743,9 +1869,30 @@ class RoboRebellion {
       this.ctx.lineTo(x + w/2, y + h/2);
       this.ctx.fill();
     }
+    
+    // Draw movement dust particles when moving fast
+  if (isMoving && this.player.currentSpeed > 50) {
+    const particleDelta = 0.016; // Use a fixed delta time if no valid parameter
+    
+    for (let i = 0; i < 3; i++) {
+      const particleSize = Math.random() * 3 + 1;
+      const offsetX = (Math.random() - 0.5) * w;
+      const offsetY = (Math.random() - 0.5) * h;
+      
+      this.ctx.fillStyle = `rgba(200, 200, 200, ${Math.random() * 0.5})`;
+      this.ctx.beginPath();
+      this.ctx.arc(
+        x + w/2 - this.player.velocityX * (deltaTime || particleDelta) * 3 + offsetX,
+        y + h/2 - this.player.velocityY * (deltaTime || particleDelta) * 3 + offsetY,
+        particleSize,
+        0,
+        Math.PI * 2
+      );
+      this.ctx.fill();
+    }
+  }
   }
 
-  // helper function to lighten/darken colors
   shadeColor(color, percent) {
     let R = parseInt(color.substring(1,3), 16);
     let G = parseInt(color.substring(3,5), 16);
