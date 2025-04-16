@@ -436,6 +436,7 @@ class RoboRebellion {
     
     this.sounds = {
       shoot: new Audio('assets/sounds/shoot.mp3'),
+      enemyShoot: new Audio('assets/sounds/enemyShoot.mp3'),
       explosion: new Audio('assets/sounds/explosion.mp3'),
       powerup: new Audio('assets/sounds/powerup.mp3'),
       hit: new Audio('assets/sounds/hit.mp3'),
@@ -847,6 +848,9 @@ class RoboRebellion {
       fromPlayer: false,
       lifetime: 1.5
     });
+
+    // play sound
+    this.playSound('enemyShoot');
   }
   
   updateExplosions(deltaTime) {
