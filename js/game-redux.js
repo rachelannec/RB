@@ -1524,37 +1524,37 @@ class RoboRebellion {
   this.ctx.textAlign = 'right';
   this.ctx.fillText(`Score: ${this.score}`, this.canvas.width - 20, this.canvas.height - 20);
   
-  // Draw health bar
-  if (this.player) {
-    const healthWidth = 300;
-    const healthHeight = 20;
-    const healthPercent = this.player.health / this.player.maxHealth;
+  // // Draw health bar
+  // if (this.player) {
+  //   const healthWidth = 300;
+  //   const healthHeight = 20;
+  //   const healthPercent = this.player.health / this.player.maxHealth;
     
-    this.ctx.fillStyle = '#444444';
-    this.ctx.fillRect(20, 20, healthWidth, healthHeight);
+  //   this.ctx.fillStyle = '#444444';
+  //   this.ctx.fillRect(20, 20, healthWidth, healthHeight);
     
-    // Color based on health percentage
-    if (healthPercent > 0.6) {
-      this.ctx.fillStyle = '#4CAF50'; // Green
-    } else if (healthPercent > 0.3) {
-      this.ctx.fillStyle = '#FFC107'; // Yellow
-    } else {
-      this.ctx.fillStyle = '#F44336'; // Red
-    }
+  //   // Color based on health percentage
+  //   if (healthPercent > 0.6) {
+  //     this.ctx.fillStyle = '#4CAF50'; // Green
+  //   } else if (healthPercent > 0.3) {
+  //     this.ctx.fillStyle = '#FFC107'; // Yellow
+  //   } else {
+  //     this.ctx.fillStyle = '#F44336'; // Red
+  //   }
     
-    this.ctx.fillRect(20, 20, healthWidth * healthPercent, healthHeight);
+  //   this.ctx.fillRect(20, 20, healthWidth * healthPercent, healthHeight);
     
-    this.ctx.strokeStyle = '#FFFFFF';
-    this.ctx.strokeRect(20, 20, healthWidth, healthHeight);
+  //   this.ctx.strokeStyle = '#FFFFFF';
+  //   this.ctx.strokeRect(20, 20, healthWidth, healthHeight);
     
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(
-      `${Math.floor(this.player.health)}/${this.player.maxHealth}`,
-      20 + healthWidth / 2,
-      20 + healthHeight / 2 + 7
-    );
-  }
+  //   this.ctx.fillStyle = '#FFFFFF';
+  //   this.ctx.textAlign = 'center';
+  //   this.ctx.fillText(
+  //     `${Math.floor(this.player.health)}/${this.player.maxHealth}`,
+  //     20 + healthWidth / 2,
+  //     20 + healthHeight / 2 + 7
+  //   );
+  // }
   }
 
   renderEnemy(enemy) {
