@@ -1665,10 +1665,10 @@ class RoboRebellion {
     if (!this.player) return;
     
     // Calculate movement animation offsets using sine wave
-    const walkCycle = Math.sin(this.gameTime * 5); // Speed multiplier
+    const walkCycle = Math.sin(this.gameTime * 5);
     const armSwing = walkCycle * 0.2;
     const legSwing = walkCycle * 0.3;
-    const bodyBob = Math.abs(walkCycle) * 3;
+    const bodyBob = Math.abs(walkCycle) * 2;
     
     // Flash when invulnerable
     if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
@@ -1676,7 +1676,7 @@ class RoboRebellion {
     }
     
     const x = this.player.x;
-    const y = this.player.y - bodyBob; // Apply vertical bobbing
+    const y = this.player.y - bodyBob;
     const w = this.player.width;
     const h = this.player.height;
     const robotType = this.player.type || 'assault';
@@ -1702,152 +1702,327 @@ class RoboRebellion {
     const darkColor = this.shadeColor(color, -30);
     const lightColor = this.shadeColor(color, 30);
     
-    // Draw robot body based on type (top-down humanoid view)
+    // Draw shadow beneath robot to create impression of height
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, h/6, w/2.2, h/4, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // DRAW ROBOT BODY BASED ON TYPE (PERSPECTIVE VIEW)
     if (robotType === 'assault') {
-      // Head (smaller circle at top)
-      this.ctx.fillStyle = lightColor;
-      this.ctx.beginPath();
-      this.ctx.arc(0, -h/4, w/5, 0, Math.PI * 2);
-      this.ctx.fill();
+      // ---- ASSAULT ROBOT ----
       
-      // Eyes - blink when not moving
-      const eyeOpen = !isMoving || Math.floor(this.gameTime * 5) % 4 !== 0;
-      if (eyeOpen) {
-        this.ctx.fillStyle = '#88CCFF';
-        this.ctx.beginPath();
-        this.ctx.arc(-w/10, -h/4, w/15, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.beginPath();
-        this.ctx.arc(w/10, -h/4, w/15, 0, Math.PI * 2);
-        this.ctx.fill();
-      }
-      
-      // Body (oval) - leans forward when moving
-      const bodyLean = isMoving ? walkCycle * 0.05 : 0;
-      this.ctx.fillStyle = color;
-      this.ctx.save();
-      this.ctx.rotate(bodyLean);
-      this.ctx.beginPath();
-      this.ctx.ellipse(0, h/8, w/3, h/3, 0, 0, Math.PI * 2);
-      this.ctx.fill();
-      
-      // Arms - swing when moving
+      // Legs (visible from top as small sections)
       this.ctx.fillStyle = darkColor;
-      const leftArmRot = isMoving ? armSwing : 0;
-      const rightArmRot = isMoving ? -armSwing : 0;
+      
+      // Left leg
+      this.ctx.save();
+      this.ctx.rotate(legSwing * 0.2);
+      this.ctx.fillRect(-w/5 - 2, h/8, w/10, h/4);
+      this.ctx.restore();
+      
+      // Right leg
+      this.ctx.save();
+      this.ctx.rotate(-legSwing * 0.2);
+      this.ctx.fillRect(w/5 - 8, h/8, w/10, h/4);
+      this.ctx.restore();
+      
+      // Main body (appears as oval from top)
+      const bodyGradient = this.ctx.createLinearGradient(0, -h/5, 0, h/5);
+      bodyGradient.addColorStop(0, lightColor);
+      bodyGradient.addColorStop(1, color);
+      
+      this.ctx.fillStyle = bodyGradient;
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, 0, w/3, h/3.5, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Shoulder armor pieces (creates depth impression)
+      this.ctx.fillStyle = darkColor;
+      
+      // Left shoulder
+      this.ctx.save();
+      this.ctx.rotate(armSwing * 0.3);
+      this.ctx.beginPath();
+      this.ctx.ellipse(-w/3, -h/15, w/9, h/12, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+      
+      // Right shoulder
+      this.ctx.save();
+      this.ctx.rotate(-armSwing * 0.3);
+      this.ctx.beginPath();
+      this.ctx.ellipse(w/3, -h/15, w/9, h/12, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+      
+      // Arms (from top-down perspective)
+      this.ctx.fillStyle = color;
       
       // Left arm
       this.ctx.save();
-      this.ctx.rotate(leftArmRot);
-      this.ctx.fillRect(-w/2, -h/8, w/4, h/5);
+      this.ctx.rotate(armSwing);
+      this.ctx.fillRect(-w/2.5, -h/15, w/4, h/10);
       this.ctx.restore();
       
       // Right arm
       this.ctx.save();
-      this.ctx.rotate(rightArmRot);
-      this.ctx.fillRect(w/4, -h/8, w/4, h/5);
+      this.ctx.rotate(-armSwing);
+      this.ctx.fillRect(w/4.5, -h/15, w/4, h/10);
       this.ctx.restore();
       
-      this.ctx.restore(); // Restore body rotation
-      
-    } else if (robotType === 'tank') {
-      // Head (armored helmet) - minimal movement
-      this.ctx.fillStyle = darkColor;
-      this.ctx.beginPath();
-      this.ctx.arc(0, -h/4, w/4, 0, Math.PI * 2);
-      this.ctx.fill();
-      
-      // Helmet visor - pulses when moving
-      const visorAlpha = isMoving ? 0.5 + Math.abs(walkCycle) * 0.5 : 1;
-      this.ctx.fillStyle = `rgba(255, 50, 50, ${visorAlpha})`;
-      this.ctx.beginPath();
-      this.ctx.ellipse(0, -h/4, w/6, h/12, 0, 0, Math.PI);
-      this.ctx.fill();
-      
-      // Bulky body (wider rectangle) - slight wobble
-      const bodyWobble = isMoving ? walkCycle * 0.03 : 0;
-      this.ctx.save();
-      this.ctx.rotate(bodyWobble);
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(-w/2.5, -h/8, w/1.25, h/1.5);
-      
-      // Shoulder pads - move slightly
-      this.ctx.fillStyle = darkColor;
-      this.ctx.beginPath();
-      this.ctx.arc(-w/2.5, legSwing*5, w/6, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.beginPath();
-      this.ctx.arc(w/2.5, -legSwing*5, w/6, 0, Math.PI * 2);
-      this.ctx.fill();
-      
-      // Armor details (chest plate)
+      // Head - visible from top
       this.ctx.fillStyle = lightColor;
       this.ctx.beginPath();
-      this.ctx.moveTo(-w/5, -h/8);
-      this.ctx.lineTo(w/5, -h/8);
-      this.ctx.lineTo(w/6, h/4);
-      this.ctx.lineTo(-w/6, h/4);
+      this.ctx.arc(0, -h/5, w/6, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Face details - looks like a visor from above
+      const eyeOpen = !isMoving || Math.floor(this.gameTime * 5) % 4 !== 0;
+      if (eyeOpen) {
+        // Visor seen from top
+        this.ctx.fillStyle = '#88CCFF';
+        this.ctx.beginPath();
+        this.ctx.ellipse(0, -h/5, w/12, w/8, 0, 0, Math.PI);
+        this.ctx.fill();
+        
+        // Tech details
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.arc(-w/15, -h/5, w/30, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+      
+      // Chest details/tech
+      this.ctx.fillStyle = lightColor;
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, w/10, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Power core glow - pulsing
+      const glowSize = 1 + Math.sin(this.gameTime * 3) * 0.2;
+      this.ctx.fillStyle = '#88CCFF';
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, (w/15) * glowSize, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+    } else if (robotType === 'tank') {
+      // ---- TANK ROBOT ----
+      
+      // Heavy legs - visible as thick platforms from top
+      this.ctx.fillStyle = darkColor;
+      
+      // Left leg
+      this.ctx.fillRect(-w/4 - 4, h/10, w/8, h/4);
+      
+      // Right leg
+      this.ctx.fillRect(w/4 - 4, h/10, w/8, h/4);
+      
+      // Main body - appears as heavy angular shape from top
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      // Create hexagonal shape for the body (looks like shoulders from top)
+      for (let i = 0; i < 6; i++) {
+        const bodyAngle = (Math.PI / 3) * i;
+        const bodyRadius = i % 2 === 0 ? w/2.8 : w/3.5; // Makes it more angular
+        const bx = Math.cos(bodyAngle) * bodyRadius;
+        const by = Math.sin(bodyAngle) * bodyRadius * 0.8;
+        if (i === 0) this.ctx.moveTo(bx, by);
+        else this.ctx.lineTo(bx, by);
+      }
       this.ctx.closePath();
       this.ctx.fill();
       
+      // Heavy shoulder pads that move slightly with walking
+      this.ctx.fillStyle = darkColor;
+      
+      // Left shoulder armor
+      this.ctx.save();
+      this.ctx.translate(-w/2.5, 0);
+      this.ctx.rotate(legSwing * 0.05);
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, w/7, 0, Math.PI * 2);
+      this.ctx.fill();
       this.ctx.restore();
       
+      // Right shoulder armor
+      this.ctx.save();
+      this.ctx.translate(w/2.5, 0);
+      this.ctx.rotate(-legSwing * 0.05);
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, w/7, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+      
+      // Helmet/head - appears as circular top from above
+      this.ctx.fillStyle = darkColor;
+      this.ctx.beginPath();
+      this.ctx.arc(0, -h/6, w/5, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Visor seen from above
+      const visorAlpha = isMoving ? 0.6 + Math.abs(walkCycle) * 0.4 : 1;
+      this.ctx.fillStyle = `rgba(255, 50, 50, ${visorAlpha})`;
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, -h/6, w/7, w/12, 0, 0, Math.PI);
+      this.ctx.fill();
+      
+      // Chest armor plate (center light)
+      this.ctx.fillStyle = lightColor;
+      this.ctx.beginPath();
+      this.ctx.moveTo(-w/6, -h/12);
+      this.ctx.lineTo(w/6, -h/12);
+      this.ctx.lineTo(w/8, h/12);
+      this.ctx.lineTo(-w/8, h/12);
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Tank treads detail (edges)
+      this.ctx.strokeStyle = '#222222';
+      this.ctx.lineWidth = 2;
+      
+      // Draw treads pattern on sides
+      const treadCount = 5;
+      const treadStep = h/6 / treadCount;
+      
+      for (let i = 0; i < treadCount; i++) {
+        const ty = i * treadStep + h/10;
+        
+        // Left tread marks
+        this.ctx.beginPath();
+        this.ctx.moveTo(-w/4 - 8, ty);
+        this.ctx.lineTo(-w/4 + 8, ty);
+        this.ctx.stroke();
+        
+        // Right tread marks
+        this.ctx.beginPath();
+        this.ctx.moveTo(w/4 - 8, ty);
+        this.ctx.lineTo(w/4 + 8, ty);
+        this.ctx.stroke();
+      }
+      
     } else {
-      // Stealth robot - fluid, ninja-like movements
-      // Hooded head - slight tilt when moving
+      // ---- STEALTH ROBOT ----
+      
+      // Slim legs (barely visible from top)
+      this.ctx.fillStyle = darkColor;
+      
+      // Left leg
+      this.ctx.save();
+      this.ctx.rotate(legSwing * 0.3);
+      this.ctx.fillRect(-w/6 - 2, h/10, w/15, h/5);
+      this.ctx.restore();
+      
+      // Right leg
+      this.ctx.save();
+      this.ctx.rotate(-legSwing * 0.3);
+      this.ctx.fillRect(w/6 - 3, h/10, w/15, h/5);
+      this.ctx.restore();
+      
+      // Sleek body - diamond-like shape from above
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, -h/4);   // Top
+      this.ctx.lineTo(w/3, 0);    // Right
+      this.ctx.lineTo(0, h/4);    // Bottom
+      this.ctx.lineTo(-w/3, 0);   // Left
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Shoulder details (thin)
+      this.ctx.fillStyle = darkColor;
+      
+      // Left shoulder
+      this.ctx.save();
+      this.ctx.translate(-w/3, 0);
+      this.ctx.rotate(armSwing * 0.5);
+      this.ctx.fillRect(-w/12, -h/20, w/6, h/12);
+      this.ctx.restore();
+      
+      // Right shoulder
+      this.ctx.save();
+      this.ctx.translate(w/3, 0);
+      this.ctx.rotate(-armSwing * 0.5);
+      this.ctx.fillRect(-w/12, -h/20, w/6, h/12);
+      this.ctx.restore();
+      
+      // Ninja-like head/hood
       const headTilt = isMoving ? walkCycle * 0.1 : 0;
       this.ctx.save();
       this.ctx.rotate(headTilt);
+      
+      // Hood shadow (from above)
       this.ctx.fillStyle = darkColor;
       this.ctx.beginPath();
-      this.ctx.arc(0, -h/4, w/5, 0, Math.PI * 2);
+      this.ctx.ellipse(0, -h/6, w/7, h/10, 0, 0, Math.PI * 2);
       this.ctx.fill();
       
-      // Face/mask - pulses when moving
-      const maskBrightness = isMoving ? 100 + Math.abs(walkCycle) * 100 : 200;
+      // Masked face - glowing visor seen from top
+      const maskBrightness = isMoving ? 120 + Math.abs(walkCycle) * 80 : 200;
       this.ctx.fillStyle = `rgb(0, ${maskBrightness}, ${maskBrightness})`;
-      this.ctx.fillRect(-w/8, -h/4, w/4, h/12);
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, -h/6, w/12, w/8, 0, 0, Math.PI);
+      this.ctx.fill();
       this.ctx.restore();
       
-      // Slim body - fluid motion
-      const bodyFlow = isMoving ? walkCycle * 0.1 : 0;
-      this.ctx.save();
-      this.ctx.rotate(bodyFlow);
-      this.ctx.fillStyle = color;
-      this.ctx.beginPath();
-      this.ctx.ellipse(0, h/8, w/4, h/3, 0, 0, Math.PI * 2);
-      this.ctx.fill();
-      
-      // Sleek armor details
+      // Armor details and scarf/cloth effects
       this.ctx.strokeStyle = lightColor;
       this.ctx.lineWidth = 2;
-      this.ctx.beginPath();
-      this.ctx.moveTo(-w/5, 0);
-      this.ctx.lineTo(w/5, 0);
-      this.ctx.stroke();
       
-      // Arms - fluid motion
-      const leftArmFlow = isMoving ? armSwing * 1.5 : 0;
-      const rightArmFlow = isMoving ? -armSwing * 1.5 : 0;
+      // Scarf/cloth flow effect (trailing behind based on movement)
+      if (isMoving) {
+        this.ctx.save();
+        this.ctx.rotate(-Math.PI/4 + walkCycle * 0.2);
+        this.ctx.beginPath();
+        this.ctx.moveTo(-w/8, -h/4);
+        this.ctx.quadraticCurveTo(
+          -w/4 - walkCycle * 5, 
+          -h/8 + walkCycle * 3, 
+          -w/3 - walkCycle * 10, 
+          h/6 + walkCycle * 5
+        );
+        this.ctx.quadraticCurveTo(
+          -w/4 - walkCycle * 8, 
+          h/10 + walkCycle * 3, 
+          -w/6 - walkCycle * 5, 
+          h/10
+        );
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
       
-      this.ctx.save();
-      this.ctx.rotate(leftArmFlow);
-      this.ctx.fillStyle = darkColor;
-      this.ctx.fillRect(-w/2.2, -h/10, w/4, h/8);
-      this.ctx.restore();
-      
-      this.ctx.save();
-      this.ctx.rotate(rightArmFlow);
-      this.ctx.fillRect(w/4.5, -h/10, w/4, h/8);
-      this.ctx.restore();
-      
-      this.ctx.restore();
+      // Tech details/power sources on body
+      for (let i = 0; i < 3; i++) {
+        const glowPulse = 0.5 + Math.sin(this.gameTime * 3 + i) * 0.5;
+        this.ctx.fillStyle = `rgba(0, 220, 200, ${glowPulse * 0.7})`;
+        const angle = (i * Math.PI * 2 / 3) + (Math.PI/6);
+        const glowX = Math.cos(angle) * w/6;
+        const glowY = Math.sin(angle) * h/8;
+        this.ctx.beginPath();
+        this.ctx.arc(glowX, glowY, w/25, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
     }
     
-    // Draw gun/weapon extending from center - slight recoil when moving
+    // Draw weapon (extending forward)
     const recoilOffset = isMoving ? Math.abs(walkCycle) * 2 : 0;
-    this.ctx.fillStyle = '#333333';
+    const weaponGradient = this.ctx.createLinearGradient(recoilOffset, 0, 25 - recoilOffset, 0);
+    weaponGradient.addColorStop(0, '#444444');
+    weaponGradient.addColorStop(1, '#222222');
+    
+    this.ctx.fillStyle = weaponGradient;
     this.ctx.fillRect(recoilOffset, -3, 25 - recoilOffset, 6);
+    
+    // Add weapon details
+    this.ctx.fillStyle = '#111111';
+    this.ctx.fillRect(recoilOffset + 18, -4, 5, 8);
+    
+    // Weapon glow based on robot type
+    this.ctx.fillStyle = robotType === 'assault' ? '#88CCFF' : 
+                       (robotType === 'tank' ? '#FF5500' : '#00FFCC');
+    this.ctx.beginPath();
+    this.ctx.arc(recoilOffset + 22, 0, 1.5, 0, Math.PI * 2);
+    this.ctx.fill();
     
     // Restore context
     this.ctx.restore();
@@ -1858,7 +2033,16 @@ class RoboRebellion {
     // Draw dash cooldown indicator
     if (this.player.dashCooldown > 0) {
       const dashPercent = this.player.dashCooldown / 3;
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      
+      // Background circle
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      this.ctx.beginPath();
+      this.ctx.arc(x + w/2, y + h/2, w * 0.8, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Progress indicator
+      this.ctx.fillStyle = robotType === 'assault' ? 'rgba(76, 175, 80, 0.3)' : 
+                          (robotType === 'tank' ? 'rgba(255, 193, 7, 0.3)' : 'rgba(33, 150, 243, 0.3)');
       this.ctx.beginPath();
       this.ctx.arc(
         x + w/2, y + h/2,
@@ -1871,26 +2055,26 @@ class RoboRebellion {
     }
     
     // Draw movement dust particles when moving fast
-  if (isMoving && this.player.currentSpeed > 50) {
-    const particleDelta = 0.016; // Use a fixed delta time if no valid parameter
-    
-    for (let i = 0; i < 3; i++) {
-      const particleSize = Math.random() * 3 + 1;
-      const offsetX = (Math.random() - 0.5) * w;
-      const offsetY = (Math.random() - 0.5) * h;
+    if (isMoving && this.player.currentSpeed > 50) {
+      const particleDelta = deltaTime || 0.016;
       
-      this.ctx.fillStyle = `rgba(200, 200, 200, ${Math.random() * 0.5})`;
-      this.ctx.beginPath();
-      this.ctx.arc(
-        x + w/2 - this.player.velocityX * (deltaTime || particleDelta) * 3 + offsetX,
-        y + h/2 - this.player.velocityY * (deltaTime || particleDelta) * 3 + offsetY,
-        particleSize,
-        0,
-        Math.PI * 2
-      );
-      this.ctx.fill();
+      for (let i = 0; i < 3; i++) {
+        const particleSize = Math.random() * 3 + 1;
+        const offsetX = (Math.random() - 0.5) * w;
+        const offsetY = (Math.random() - 0.5) * h;
+        
+        this.ctx.fillStyle = `rgba(200, 200, 200, ${Math.random() * 0.5})`;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          x + w/2 - this.player.velocityX * particleDelta * 3 + offsetX,
+          y + h/2 - this.player.velocityY * particleDelta * 3 + offsetY,
+          particleSize,
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
     }
-  }
   }
 
   shadeColor(color, percent) {
