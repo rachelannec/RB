@@ -1288,7 +1288,7 @@ class RoboRebellion {
     // Apply screen shake effect
     if (this.screenShake > 0) {
       this.applyScreenShake();
-      this.screenShake -= 0.016; // Reduce shake over time
+      this.screenShake -= 0.016;
       if (this.screenShake < 0) this.screenShake = 0;
     }
 
@@ -1306,12 +1306,16 @@ class RoboRebellion {
 
     // Add player lighting effects if player exists
     if (this.player) {
+      // Player lighting (should be before player to appear under it)
       this.renderLighting();
-    }
-
-    // Draw player trail if it exists
-    if (this.player && this.player.trail) {
-      this.renderPlayerTrail();
+      
+      // Player trail
+      if (this.player.trail.length > 1) {
+        this.renderPlayerTrail();
+      }
+      
+      // The player itself (using dedicated method)
+      this.renderPlayer();
     }
     
     // Draw powerups
@@ -1404,93 +1408,92 @@ class RoboRebellion {
   });
   
   // Draw player
-  if (this.player) {
-    // Flash when invulnerable
-    if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
-      this.ctx.globalAlpha = 0.5;
-    }
+  // if (this.player) {
+  //   // Flash when invulnerable
+  //   if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
+  //     this.ctx.globalAlpha = 0.5;
+  //   }
     
-    // Draw player with appropriate shape based on type
-    const robotType = this.player.type || 'assault';
-    this.ctx.fillStyle = this.player.color;
+  //   // Draw player with appropriate shape based on type
+  //   const robotType = this.player.type || 'assault';
+  //   this.ctx.fillStyle = this.player.color;
     
-    if (robotType === 'assault') {
-      // Triangle shape
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
-      this.ctx.lineTo(this.player.x, this.player.y + this.player.height);
-      this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height);
-      this.ctx.closePath();
-      this.ctx.fill();
-    } else if (robotType === 'tank') {
-      // Hexagon shape
-      this.ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = Math.PI / 3 * i;
-        const x = this.player.x + this.player.width/2 + Math.cos(angle) * this.player.width/2;
-        const y = this.player.y + this.player.height/2 + Math.sin(angle) * this.player.height/2;
+  //   if (robotType === 'assault') {
+  //     // Triangle shape
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
+  //     this.ctx.lineTo(this.player.x, this.player.y + this.player.height);
+  //     this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height);
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+  //   } else if (robotType === 'tank') {
+  //     // Hexagon shape
+  //     this.ctx.beginPath();
+  //     for (let i = 0; i < 6; i++) {
+  //       const angle = Math.PI / 3 * i;
+  //       const x = this.player.x + this.player.width/2 + Math.cos(angle) * this.player.width/2;
+  //       const y = this.player.y + this.player.height/2 + Math.sin(angle) * this.player.height/2;
         
-        if (i === 0) this.ctx.moveTo(x, y);
-        else this.ctx.lineTo(x, y);
-      }
-      this.ctx.closePath();
-      this.ctx.fill();
-    } else {
-      // Stealth: Diamond shape
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
-      this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height/2);
-      this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height);
-      this.ctx.lineTo(this.player.x, this.player.y + this.player.height/2);
-      this.ctx.closePath();
-      this.ctx.fill();
-    }
+  //       if (i === 0) this.ctx.moveTo(x, y);
+  //       else this.ctx.lineTo(x, y);
+  //     }
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+  //   } else {
+  //     // Stealth: Diamond shape
+  //     this.ctx.beginPath();
+  //     this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
+  //     this.ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height/2);
+  //     this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height);
+  //     this.ctx.lineTo(this.player.x, this.player.y + this.player.height/2);
+  //     this.ctx.closePath();
+  //     this.ctx.fill();
+  //   }
     
-    // Draw gun pointing toward mouse
-    const mouseWorldX = this.mouse.x + this.camera.x;
-    const mouseWorldY = this.mouse.y + this.camera.y;
+  //   // Draw gun pointing toward mouse
+  //   const mouseWorldX = this.mouse.x + this.camera.x;
+  //   const mouseWorldY = this.mouse.y + this.camera.y;
     
-    const angle = Math.atan2(
-      mouseWorldY - (this.player.y + this.player.height/2),
-      mouseWorldX - (this.player.x + this.player.width/2)
-    );
+  //   const angle = Math.atan2(
+  //     mouseWorldY - (this.player.y + this.player.height/2),
+  //     mouseWorldX - (this.player.x + this.player.width/2)
+  //   );
     
-    this.ctx.save();
-    this.ctx.translate(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-    this.ctx.rotate(angle);
-    this.ctx.fillStyle = '#333333';
-    this.ctx.fillRect(0, -3, 25, 6);
-    this.ctx.restore();
+  //   this.ctx.save();
+  //   this.ctx.translate(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
+  //   this.ctx.rotate(angle);
+  //   this.ctx.fillStyle = '#333333';
+  //   this.ctx.fillRect(0, -3, 25, 6);
+  //   this.ctx.restore();
     
-    // Reset opacity
-    this.ctx.globalAlpha = 1.0;
+  //   // Reset opacity
+  //   this.ctx.globalAlpha = 1.0;
     
-    // Draw dash cooldown indicator
-    if (this.player.dashCooldown > 0) {
-      const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      this.ctx.beginPath();
-      this.ctx.arc(
-        this.player.x + this.player.width/2,
-        this.player.y + this.player.height/2,
-        this.player.width * 0.8,
-        -Math.PI/2,
-        -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
-      );
-      this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
-      this.ctx.fill();
-    }
-  }
+  //   // Draw dash cooldown indicator
+  //   if (this.player.dashCooldown > 0) {
+  //     const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
+  //     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  //     this.ctx.beginPath();
+  //     this.ctx.arc(
+  //       this.player.x + this.player.width/2,
+  //       this.player.y + this.player.height/2,
+  //       this.player.width * 0.8,
+  //       -Math.PI/2,
+  //       -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
+  //     );
+  //     this.ctx.lineTo(this.player.x + this.player.width/2, this.player.y + this.player.height/2);
+  //     this.ctx.fill();
+  //   }
+  // }
   
   // Draw explosions
+  // 10. Explosions
   this.explosions.forEach(explosion => {
     this.ctx.globalAlpha = explosion.alpha;
     this.ctx.fillStyle = explosion.color;
     
     if (explosion.vx !== undefined) {
-      // Particle that moves
-      // explosion.x += explosion.vx * 0.016; // Approx for one frame
-      // explosion.y += explosion.vy * 0.016;
+      // Don't move explosion particles here - that belongs in updateExplosions
       this.ctx.beginPath();
       this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
       this.ctx.fill();
@@ -1507,47 +1510,7 @@ class RoboRebellion {
     this.ctx.globalAlpha = 1.0;
   });
 
-    
-  // Draw bullets
-  // this.bullets.forEach(bullet => {
-  //   this.ctx.fillStyle = bullet.color;
-  //   if (bullet.fromPlayer) {
-  //     // Player bullets are circular
-  //     this.ctx.beginPath();
-  //     this.ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
-  //     this.ctx.fill();
-  //   } else {
-  //     // Enemy bullets are diamonds
-  //     this.ctx.save();
-  //     this.ctx.translate(bullet.x, bullet.y);
-  //     this.ctx.rotate(Math.PI / 4);
-  //     this.ctx.fillRect(-bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
-  //     this.ctx.restore();
-  //   }
-  // });
-  
-  // Draw explosions
-  // this.explosions.forEach(explosion => {
-  //   this.ctx.globalAlpha = explosion.alpha;
-  //   this.ctx.fillStyle = explosion.color;
-    
-  //   if (explosion.vx !== undefined) {
-  //     // Particle that moves
-  //     explosion.x += explosion.vx * 0.016; // Approx for one frame
-  //     explosion.y += explosion.vy * 0.016;
-  //     this.ctx.beginPath();
-  //     this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-  //     this.ctx.fill();
-  //   } else {
-  //     // Static explosion
-  //     this.ctx.beginPath();
-  //     this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-  //     this.ctx.fill();
-  //   }
-    
-  //   this.ctx.globalAlpha = 1.0;
-  // });
-  
+   
   // Restore original transformation
   this.ctx.restore();
   
@@ -1634,6 +1597,177 @@ class RoboRebellion {
         this.ctx.fill();
         break;
     }
+  }
+
+  renderPlayer(){
+    if (!this.player) return;
+  
+    // Flash when invulnerable
+    if (this.player.invulnerable && Math.floor(this.gameTime * 10) % 2 === 0) {
+      this.ctx.globalAlpha = 0.5;
+    }
+    
+    const x = this.player.x;
+    const y = this.player.y;
+    const w = this.player.width;
+    const h = this.player.height;
+    const robotType = this.player.type || 'assault';
+    
+    // Calculate angle to face mouse
+    const mouseWorldX = this.mouse.x + this.camera.x;
+    const mouseWorldY = this.mouse.y + this.camera.y;
+    const angle = Math.atan2(
+      mouseWorldY - (y + h/2),
+      mouseWorldX - (x + w/2)
+    );
+    
+    // Save context for rotation
+    this.ctx.save();
+    this.ctx.translate(x + w/2, y + h/2);
+    this.ctx.rotate(angle);
+    
+    // Base color from robot type
+    const color = this.player.color;
+    
+    // Draw robot body based on type
+    if (robotType === 'assault') {
+      // Assault robot - sleek, fast-looking design
+      
+      // Main body (triangular)
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.moveTo(w/2, -h/2);
+      this.ctx.lineTo(-w/2, h/3);
+      this.ctx.lineTo(w/2, h/2);
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Secondary color accent
+      this.ctx.fillStyle = this.shadeColor(color, -30);
+      this.ctx.beginPath();
+      this.ctx.moveTo(w/2, -h/4);
+      this.ctx.lineTo(-w/4, h/4);
+      this.ctx.lineTo(w/2, h/4);
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Robot eye/visor
+      this.ctx.fillStyle = '#FFFFFF';
+      this.ctx.beginPath();
+      this.ctx.arc(w/4, -h/8, h/10, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Glowing eye effect
+      this.ctx.fillStyle = '#88CCFF';
+      this.ctx.beginPath();
+      this.ctx.arc(w/4, -h/8, h/15, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+    } else if (robotType === 'tank') {
+      // Tank robot - bulky, heavy design
+      
+      // Main body (hexagon)
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 3 * i;
+        const xPos = Math.cos(angle) * w/2;
+        const yPos = Math.sin(angle) * h/2;
+        if (i === 0) this.ctx.moveTo(xPos, yPos);
+        else this.ctx.lineTo(xPos, yPos);
+      }
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Armor plates
+      this.ctx.fillStyle = this.shadeColor(color, -30);
+      this.ctx.beginPath();
+      this.ctx.fillRect(-w/4, -h/4, w/2, h/2);
+      
+      // Dual robot eyes
+      this.ctx.fillStyle = '#FF3300';
+      this.ctx.beginPath();
+      this.ctx.arc(w/6, -h/6, h/12, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.beginPath();
+      this.ctx.arc(-w/6, -h/6, h/12, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+    } else {
+      // Stealth robot - angular, sleek design
+      
+      // Main body (diamond)
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, -h/2);
+      this.ctx.lineTo(w/2, 0);
+      this.ctx.lineTo(0, h/2);
+      this.ctx.lineTo(-w/2, 0);
+      this.ctx.closePath();
+      this.ctx.fill();
+      
+      // Accent lines
+      this.ctx.strokeStyle = this.shadeColor(color, -40);
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(-w/3, -h/5);
+      this.ctx.lineTo(w/3, -h/5);
+      this.ctx.stroke();
+      
+      // Robot eye (slim visor)
+      this.ctx.fillStyle = '#00FFCC';
+      this.ctx.fillRect(-w/4, -h/4, w/2, h/10);
+    }
+    
+    // Draw gun/weapon
+    this.ctx.fillStyle = '#333333';
+    this.ctx.fillRect(0, -3, 25, 6);
+    
+    // Restore context
+    this.ctx.restore();
+    
+    // Reset opacity
+    this.ctx.globalAlpha = 1.0;
+    
+    // Draw dash cooldown indicator
+    if (this.player.dashCooldown > 0) {
+      const dashPercent = this.player.dashCooldown / 3; // 3 second cooldown
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      this.ctx.beginPath();
+      this.ctx.arc(
+        x + w/2, y + h/2,
+        w * 0.8,
+        -Math.PI/2,
+        -Math.PI/2 + (1 - dashPercent) * Math.PI * 2
+      );
+      this.ctx.lineTo(x + w/2, y + h/2);
+      this.ctx.fill();
+    }
+  }
+
+  // helper function to lighten/darken colors
+  shadeColor(color, percent) {
+    let R = parseInt(color.substring(1,3), 16);
+    let G = parseInt(color.substring(3,5), 16);
+    let B = parseInt(color.substring(5,7), 16);
+  
+    R = parseInt(R * (100 + percent) / 100);
+    G = parseInt(G * (100 + percent) / 100);
+    B = parseInt(B * (100 + percent) / 100);
+  
+    R = (R < 255) ? R : 255;  
+    G = (G < 255) ? G : 255;  
+    B = (B < 255) ? B : 255;  
+  
+    R = Math.max(0, R);
+    G = Math.max(0, G);
+    B = Math.max(0, B);
+  
+    const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
+    const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
+    const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
+  
+    return "#"+RR+GG+BB;
   }
 
   renderLighting() {
