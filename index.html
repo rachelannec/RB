@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robo Rebellion Redux</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style2.css">
     <link rel="shortcut icon" href="./assets/image.png" type="image/x-icon">
 </head>
 <body>
@@ -16,6 +17,7 @@
     
     <!-- Start Screen -->
     <div id="start-screen" class="overlay">
+        
         <h1>ROBO REBELLION</h1>
         <p>Select your robot and survive as many waves as possible!</p>
         
@@ -36,6 +38,7 @@
                 <p>⚡ Rapid fire</p>
             </div>
         </div>
+
         
         <button id="start-game">START MISSION</button>
         <div class="controls-info">
@@ -65,11 +68,14 @@
         <div id="volume-control" class="hud-control">
             <button id="toggle-mute" class="hud-button">🔊</button>
         </div>
-        <div id="sound-controls" class="hud-control">
-            <button id="toggle-music" class="hud-button" title="Toggle Music">🎵</button>
-            <button id="toggle-sfx" class="hud-button" title="Toggle Sound Effects">🔊</button>
-        </div>
+        
         <!-- <div id="score">Score: 0</div> -->
+    </div>
+
+    <!-- sound buttons -->
+    <div id="sound-controls" class="hud-control">
+      <button id="toggle-music" class="hud-button" title="Toggle Music">🎵</button>
+      <button id="toggle-sfx" class="hud-button" title="Toggle Sound Effects">🔊</button>
     </div>
     
     <!-- pause screen -->
@@ -82,7 +88,44 @@
         </div>
     </div>
 
+    <div id="info-tab-container">
+        <div id="info-tab">INFO</div>
+        <div id="info-panel">
+          <div class="info-panel-header">
+            <h2>Robo Rebellion</h2>
+            <span id="close-info-panel">×</span>
+          </div>
+          <div class="info-panel-content">
+            <div class="info-section">
+              <h3>About</h3>
+              <p id="game-description"></p>
+              <p><strong>Version:</strong> <span id="game-version"></span></p>
+            </div>
+            
+            <div class="info-section">
+              <h3>Controls</h3>
+              <ul id="game-controls"></ul>
+            </div>
+            
+            <div class="info-section">
+              <h3>Credits</h3>
+              <ul id="game-credits"></ul>
+            </div>
+            
+            <div class="info-footer">
+              <p>© <span id="game-year"></span> <span id="game-developer"></span></p>
+              <div class="social-links">
+                <a id="game-website" href="#" target="_blank">Website</a>
+                <a id="game-twitter" href="#" target="_blank">Twitter</a>
+                <a id="game-github" href="#" target="_blank">GitHub</a>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
     <!-- Game Scripts -->
     <script src="js/game-redux.js"></script>
+    <script src="js/dev-info.js"></script>
 </body>
 </html>

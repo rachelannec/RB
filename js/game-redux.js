@@ -1,3 +1,4 @@
+// import './game-redux2.js'; // Import the game logic
 class RoboRebellion {
   constructor() {
     // Get canvas and context
@@ -71,6 +72,8 @@ class RoboRebellion {
     // Sound settings
     this.musicEnabled = true;
     this.sfxEnabled = true;
+
+    this.loadSoundPreferences();
     
     setTimeout(() => {
       if (this.musicEnabled && this.sounds.bgm) {
@@ -2650,8 +2653,7 @@ class RoboRebellion {
 
 // Initialize game on window load
 window.addEventListener('load', () => {
-  new RoboRebellion();
-  
-  // Select assault bot by default
-  document.querySelector('.character[data-type="assault"]').classList.add('selected');
+  const game = new RoboRebellion();
+  window.roboRebellion = game; // Make the game instance globally accessible
+  game.state = 'menu'; // Set the initial state to 'menu'
 });
