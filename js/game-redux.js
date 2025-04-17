@@ -260,19 +260,7 @@ class RoboRebellion {
       }
     });
 
-    // Volume control
-    // document.getElementById('toggle-mute').addEventListener('click', () => {
-    //   if (this.sounds.bgm) {
-    //     if (this.sounds.bgm.volume > 0) {
-    //       this.sounds.bgm.volume = 0;
-    //       document.getElementById('toggle-mute').textContent = '🔇';
-    //     } else {
-    //       this.sounds.bgm.volume = 0.3;
-    //       document.getElementById('toggle-mute').textContent = '🔊';
-    //     }
-    //   }
-    // });
-
+ 
     // Add sound control listeners
     document.getElementById('toggle-music').addEventListener('click', () => {
       this.toggleMusic();
@@ -280,6 +268,16 @@ class RoboRebellion {
     
     document.getElementById('toggle-sfx').addEventListener('click', () => {
       this.toggleSFX();
+    });
+
+    // Show leaderboard button
+    document.getElementById('view-leaderboard').addEventListener('click', () => {
+      this.showLeaderboard();
+    });
+
+    // Back to menu button
+    document.getElementById('back-to-menu').addEventListener('click', () => {
+      this.hideLeaderboard();
     });
   }
 
@@ -1263,6 +1261,9 @@ class RoboRebellion {
     document.getElementById('final-score').textContent = this.score;
     document.getElementById('rooms-cleared').textContent = this.wave - 1;
     document.getElementById('game-over').classList.remove('hidden');
+
+    // save score
+    this.saveHighScore(this.score);
   }
 
   applyDamageEffect() {
@@ -1297,13 +1298,7 @@ class RoboRebellion {
     if (this.state === 'paused') {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      
-      this.ctx.fillStyle = '#FFFFFF';
-      this.ctx.font = '48px Arial';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
-      this.ctx.font = '24px Arial';
-      // this.ctx.fillText('Press ESC to resume', this.canvas.width / 2, this.canvas.height / 2 + 50);
+ 
     }
     
     // Draw debug info
@@ -2626,6 +2621,44 @@ class RoboRebellion {
       a.y < b.y + b.height &&
       a.y + a.height > b.y
     );
+  }
+
+  saveHighScore(score) {
+    try {
+      const leaderboard = JSON.parse(localStorage.getItem('roboRebellion_leaderboard')) || [];
+      leaderboard.push({ score, date: new Date().toISOString() });
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard.splice(10);
+      localStorage.setItem('roboRebellion_leaderboard', JSON.stringify(leaderboard));
+    } catch (e) {
+      console.error('Error saving high score:', e);
+    }
+  }
+  
+  loadLeaderboard() {
+    try {
+      const leaderboard = JSON.parse(localStorage.getItem('roboRebellion_leaderboard')) || [];
+      const leaderboardList = document.getElementById('leaderboard-list');
+      leaderboardList.innerHTML = '';
+      leaderboard.forEach((entry, index) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${index + 1}. ${entry.score} - ${new Date(entry.date).toLocaleDateString()}`;
+        leaderboardList.appendChild(listItem);
+      });
+    } catch (e) {
+      console.error('Error loading leaderboard:', e);
+    }
+  }
+
+  showLeaderboard() {
+    this.loadLeaderboard();
+    document.getElementById('leaderboard').classList.remove('hidden');
+    document.getElementById('start-screen').classList.add('hidden');
+  }
+
+  hideLeaderboard() {
+    document.getElementById('leaderboard').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
   }
 
   // debugSounds() {
