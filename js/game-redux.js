@@ -209,75 +209,75 @@ class RoboRebellion {
     });
 
     // Enhanced keyboard events for pause
-  window.addEventListener('keydown', e => {
-    this.keys[e.key] = true;
-    
-    // Toggle debug mode with F1
-    if (e.key === 'F1') {
-      this.debugMode = !this.debugMode;
-      e.preventDefault();
-    }
-    
-    // Toggle pause with Escape
-    if (e.key === 'Escape' && (this.state === 'playing' || this.state === 'paused')) {
-      this.togglePause();
-    }
-    
-    // Dash with space bar
-    if (e.key === ' ' && this.state === 'playing' && this.player && !this.player.dashing) {
-      this.player.dash();
-    }
-  });
-  
-  // Add these event listeners for the pause button and pause screen
-  document.getElementById('pause-button').addEventListener('click', () => {
-    if (this.state === 'playing') {
-      this.togglePause();
-    }
-  });
-  
-  document.getElementById('resume-game').addEventListener('click', () => {
-    if (this.state === 'paused') {
-      this.togglePause();
-    }
-  });
-  
-  document.getElementById('restart-from-pause').addEventListener('click', () => {
-    if (this.state === 'paused') {
-      this.state = 'menu';
-      document.getElementById('pause-screen').classList.add('hidden');
-      document.getElementById('game-over').classList.add('hidden');
-      document.getElementById('hud').classList.add('hidden');
-      document.getElementById('start-screen').classList.remove('hidden');
-
-      if (this.musicEnabled && this.sounds.bgm) {
-        this.sounds.bgm.currentTime = 0;
-        this.playSound('bgm');
+    window.addEventListener('keydown', e => {
+      this.keys[e.key] = true;
+      
+      // Toggle debug mode with F1
+      if (e.key === 'F1') {
+        this.debugMode = !this.debugMode;
+        e.preventDefault();
       }
-    }
-  });
-
-  // Volume control
-  document.getElementById('toggle-mute').addEventListener('click', () => {
-    if (this.sounds.bgm) {
-      if (this.sounds.bgm.volume > 0) {
-        this.sounds.bgm.volume = 0;
-        document.getElementById('toggle-mute').textContent = '🔇';
-      } else {
-        this.sounds.bgm.volume = 0.3;
-        document.getElementById('toggle-mute').textContent = '🔊';
+      
+      // Toggle pause with Escape
+      if (e.key === 'Escape' && (this.state === 'playing' || this.state === 'paused')) {
+        this.togglePause();
       }
-    }
-  });
+      
+      // Dash with space bar
+      if (e.key === ' ' && this.state === 'playing' && this.player && !this.player.dashing) {
+        this.player.dash();
+      }
+    });
+    
+    // Add these event listeners for the pause button and pause screen
+    document.getElementById('pause-button').addEventListener('click', () => {
+      if (this.state === 'playing') {
+        this.togglePause();
+      }
+    });
+    
+    document.getElementById('resume-game').addEventListener('click', () => {
+      if (this.state === 'paused') {
+        this.togglePause();
+      }
+    });
+    
+    document.getElementById('restart-from-pause').addEventListener('click', () => {
+      if (this.state === 'paused') {
+        this.state = 'menu';
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('game-over').classList.add('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
 
-  // Add sound control listeners
-  document.getElementById('toggle-music').addEventListener('click', () => {
-    this.toggleMusic();
-  });
-  
-  document.getElementById('toggle-sfx').addEventListener('click', () => {
-    this.toggleSFX();
-  });
+        if (this.musicEnabled && this.sounds.bgm) {
+          this.sounds.bgm.currentTime = 0;
+          this.playSound('bgm');
+        }
+      }
+    });
+
+    // Volume control
+    document.getElementById('toggle-mute').addEventListener('click', () => {
+      if (this.sounds.bgm) {
+        if (this.sounds.bgm.volume > 0) {
+          this.sounds.bgm.volume = 0;
+          document.getElementById('toggle-mute').textContent = '🔇';
+        } else {
+          this.sounds.bgm.volume = 0.3;
+          document.getElementById('toggle-mute').textContent = '🔊';
+        }
+      }
+    });
+
+    // Add sound control listeners
+    document.getElementById('toggle-music').addEventListener('click', () => {
+      this.toggleMusic();
+    });
+    
+    document.getElementById('toggle-sfx').addEventListener('click', () => {
+      this.toggleSFX();
+    });
   }
 
   togglePause() {
@@ -535,10 +535,10 @@ class RoboRebellion {
     let moveX = 0;
     let moveY = 0;
     
-    if (this.keys['ArrowUp'] || this.keys['w']) moveY -= 1;
-    if (this.keys['ArrowDown'] || this.keys['s']) moveY += 1;
-    if (this.keys['ArrowLeft'] || this.keys['a']) moveX -= 1;
-    if (this.keys['ArrowRight'] || this.keys['d']) moveX += 1;
+    if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W'])  moveY -= 1;
+    if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) moveY += 1;
+    if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) moveX -= 1;
+    if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) moveX += 1;
     
     // Normalize diagonal movement
     if (moveX !== 0 && moveY !== 0) {
@@ -1712,20 +1712,154 @@ class RoboRebellion {
     if (robotType === 'assault') {
       // ---- ASSAULT ROBOT ----
       
-      // Legs (visible from top as small sections)
-      this.ctx.fillStyle = darkColor;
-      
-      // Left leg
-      this.ctx.save();
-      this.ctx.rotate(legSwing * 0.2);
-      this.ctx.fillRect(-w/5 - 2, h/8, w/10, h/4);
-      this.ctx.restore();
-      
-      // Right leg
-      this.ctx.save();
-      this.ctx.rotate(-legSwing * 0.2);
-      this.ctx.fillRect(w/5 - 8, h/8, w/10, h/4);
-      this.ctx.restore();
+      // // Legs (pure top-down view)
+      // this.ctx.fillStyle = darkColor;
+
+      // // Left leg
+      // this.ctx.save();
+      // this.ctx.rotate(legSwing * 0.2);
+
+      // // Hip joint (armored)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(-w/5, h/10, w/14, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Add detailed joint components
+      // this.ctx.strokeStyle = lightColor;
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.arc(-w/5, h/10, w/20, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Thigh - angular armored plate style
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/5 - w/15, h/10);
+      // this.ctx.lineTo(-w/5 + w/15, h/10);
+      // this.ctx.lineTo(-w/5 + w/12, h/10 + h/8);
+      // this.ctx.lineTo(-w/5 - w/12, h/10 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Knee servo joint (tactical look)
+      // this.ctx.fillStyle = color;
+      // this.ctx.beginPath();
+      // this.ctx.arc(-w/5, h/10 + h/8, w/16, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Knee detail lines
+      // this.ctx.strokeStyle = '#000000';
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/5 - w/20, h/10 + h/8);
+      // this.ctx.lineTo(-w/5 + w/20, h/10 + h/8);
+      // this.ctx.stroke();
+
+      // // Lower leg - combat boot style
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/5 - w/12, h/10 + h/8);
+      // this.ctx.lineTo(-w/5 + w/12, h/10 + h/8);
+      // this.ctx.lineTo(-w/5 + w/10 + 4, h/10 + h/4 + h/8);
+      // this.ctx.lineTo(-w/5 - w/10 - 4, h/10 + h/4 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Tactical boot details - ankle armor
+      // this.ctx.fillStyle = '#222222';
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/5 - w/15, h/10 + h/8 + h/12);
+      // this.ctx.lineTo(-w/5 + w/15, h/10 + h/8 + h/12);
+      // this.ctx.lineTo(-w/5 + w/12, h/10 + h/8 + h/8);
+      // this.ctx.lineTo(-w/5 - w/12, h/10 + h/8 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Combat boot tread pattern
+      // this.ctx.fillStyle = '#111111';
+      // this.ctx.fillRect(-w/5 - w/11, h/10 + h/4 + h/10, w/5.5, h/16);
+
+      // // Heat vent/power indicator
+      // const heatGlow = 0.5 + Math.abs(Math.sin(this.gameTime * 8)) * 0.5;
+      // this.ctx.fillStyle = `rgba(255, 120, 0, ${heatGlow})`;
+      // this.ctx.beginPath();
+      // this.ctx.arc(-w/5 - w/15, h/10 + h/15, w/25, 0, Math.PI * 2);
+      // this.ctx.fill();
+      // this.ctx.restore();
+
+      // // Right leg (mirrored with variations)
+      // this.ctx.save();
+      // this.ctx.rotate(-legSwing * 0.2);
+
+      // // Hip joint (armored)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(w/5, h/10, w/14, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Add detailed joint components
+      // this.ctx.strokeStyle = lightColor;
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.arc(w/5, h/10, w/20, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Thigh - angular armored plate style
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/5 - w/15, h/10);
+      // this.ctx.lineTo(w/5 + w/15, h/10);
+      // this.ctx.lineTo(w/5 + w/12, h/10 + h/8);
+      // this.ctx.lineTo(w/5 - w/12, h/10 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Knee servo joint (tactical look)
+      // this.ctx.fillStyle = color;
+      // this.ctx.beginPath();
+      // this.ctx.arc(w/5, h/10 + h/8, w/16, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Knee detail lines
+      // this.ctx.strokeStyle = '#000000';
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/5 - w/20, h/10 + h/8);
+      // this.ctx.lineTo(w/5 + w/20, h/10 + h/8);
+      // this.ctx.stroke();
+
+      // // Lower leg - combat boot style
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/5 - w/12, h/10 + h/8);
+      // this.ctx.lineTo(w/5 + w/12, h/10 + h/8);
+      // this.ctx.lineTo(w/5 + w/10 + 4, h/10 + h/4 + h/8);
+      // this.ctx.lineTo(w/5 - w/10 - 4, h/10 + h/4 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Tactical boot details - ankle armor
+      // this.ctx.fillStyle = '#222222';
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/5 - w/15, h/10 + h/8 + h/12);
+      // this.ctx.lineTo(w/5 + w/15, h/10 + h/8 + h/12);
+      // this.ctx.lineTo(w/5 + w/12, h/10 + h/8 + h/8);
+      // this.ctx.lineTo(w/5 - w/12, h/10 + h/8 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Combat boot tread pattern
+      // this.ctx.fillStyle = '#111111';
+      // this.ctx.fillRect(w/5 - w/11, h/10 + h/4 + h/10, w/5.5, h/16);
+
+      // // Heat vent/power indicator
+      // const heatGlowRight = 0.5 + Math.abs(Math.sin(this.gameTime * 8 + 1)) * 0.5;
+      // this.ctx.fillStyle = `rgba(255, 120, 0, ${heatGlowRight})`;
+      // this.ctx.beginPath();
+      // this.ctx.arc(w/5 + w/15, h/10 + h/15, w/25, 0, Math.PI * 2);
+      // this.ctx.fill();
+      // this.ctx.restore();
       
       // Main body (appears as oval from top)
       const bodyGradient = this.ctx.createLinearGradient(0, -h/5, 0, h/5);
@@ -1809,18 +1943,216 @@ class RoboRebellion {
     } else if (robotType === 'tank') {
       // ---- TANK ROBOT ----
       
-      // Heavy legs - visible as thick platforms from top
-      this.ctx.fillStyle = darkColor;
-      
-      // Left leg
-      this.ctx.fillRect(-w/4 - 4, h/10, w/8, h/4);
-      
-      // Right leg
-      this.ctx.fillRect(w/4 - 4, h/10, w/8, h/4);
-      
-      // Main body - appears as heavy angular shape from top
+      // Heavy armored legs instead of treads
+      // this.ctx.fillStyle = darkColor;
+      // // Left front leg
+      // this.ctx.save();
+      // this.ctx.translate(-w/3, -h/8);
+      // this.ctx.rotate(legSwing * 0.07); // Subtle movement
+
+      // // Upper leg joint (hip)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/10, 0, Math.PI * 2); // Wider joint
+      // this.ctx.fill();
+
+      // // Add mechanical detail to joint
+      // this.ctx.strokeStyle = '#444444';
+      // this.ctx.lineWidth = 2;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/14, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Heavy upper leg segment - wider
+      // this.ctx.fillRect(-w/12, 0, w/6, h/5); // Increased from w/8 to w/6
+
+      // // Knee joint - wider
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, h/5, w/12, 0, Math.PI * 2); // Increased from w/14
+      // this.ctx.fill();
+
+      // // Lower leg (wider at bottom)
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/10, h/5); // Wider top (-w/12 → -w/10)
+      // this.ctx.lineTo(w/10, h/5);  // Wider top (w/12 → w/10)
+      // this.ctx.lineTo(w/8, h/3 + h/10); // Wider bottom (w/10 → w/8)
+      // this.ctx.lineTo(-w/8, h/3 + h/10); // Wider bottom (-w/10 → -w/8)
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Foot plate - wider
+      // this.ctx.fillStyle = '#333333';
+      // this.ctx.fillRect(-w/8, h/3 + h/10 - 2, w/4, h/16); // Wider (w/4.5 → w/4)
+
+      // // Armored plates on leg - wider
+      // this.ctx.fillStyle = '#555555';
+      // this.ctx.fillRect(-w/12, h/10, w/6, h/20); // Wider (w/7 → w/6)
+      // this.ctx.restore();
+
+      // // Left rear leg
+      // this.ctx.save();
+      // this.ctx.translate(-w/3, h/6);
+      // this.ctx.rotate(-legSwing * 0.07); // Opposite movement to front leg
+
+      // // Upper leg joint (hip)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/12, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Add mechanical detail to joint
+      // this.ctx.strokeStyle = '#444444';
+      // this.ctx.lineWidth = 2;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/16, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Heavy upper leg segment
+      // this.ctx.fillRect(-w/16, 0, w/8, h/5);
+
+      // // Knee joint
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, h/5, w/14, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Lower leg (wider at bottom)
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/12, h/5);
+      // this.ctx.lineTo(w/12, h/5);
+      // this.ctx.lineTo(w/10, h/3 + h/10);
+      // this.ctx.lineTo(-w/10, h/3 + h/10);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Foot plate
+      // this.ctx.fillStyle = '#333333';
+      // this.ctx.fillRect(-w/9, h/3 + h/10 - 2, w/4.5, h/16);
+
+      // // Armored plates on leg
+      // this.ctx.fillStyle = '#555555';
+      // this.ctx.fillRect(-w/14, h/10, w/7, h/20);
+      // this.ctx.restore();
+
+      // // Right front leg
+      // this.ctx.save();
+      // this.ctx.translate(w/3, -h/8);
+      // this.ctx.rotate(-legSwing * 0.07); // Mirror movement of left leg
+
+      // // Upper leg joint (hip)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/12, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Add mechanical detail to joint
+      // this.ctx.strokeStyle = '#444444';
+      // this.ctx.lineWidth = 2;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/16, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Heavy upper leg segment
+      // this.ctx.fillRect(-w/16, 0, w/8, h/5);
+
+      // // Knee joint
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, h/5, w/14, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Lower leg (wider at bottom)
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/12, h/5);
+      // this.ctx.lineTo(w/12, h/5);
+      // this.ctx.lineTo(w/10, h/3 + h/10);
+      // this.ctx.lineTo(-w/10, h/3 + h/10);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Foot plate
+      // this.ctx.fillStyle = '#333333';
+      // this.ctx.fillRect(-w/9, h/3 + h/10 - 2, w/4.5, h/16);
+
+      // // Armored plates on leg
+      // this.ctx.fillStyle = '#555555';
+      // this.ctx.fillRect(-w/14, h/10, w/7, h/20);
+      // this.ctx.restore();
+
+      // // Right rear leg
+      // this.ctx.save();
+      // this.ctx.translate(w/3, h/6);
+      // this.ctx.rotate(legSwing * 0.07); // Opposite movement to right front leg
+
+      // // Upper leg joint (hip)
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/12, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Add mechanical detail to joint
+      // this.ctx.strokeStyle = '#444444';
+      // this.ctx.lineWidth = 2;
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, 0, w/16, 0, Math.PI * 2);
+      // this.ctx.stroke();
+
+      // // Heavy upper leg segment
+      // this.ctx.fillRect(-w/16, 0, w/8, h/5);
+
+      // // Knee joint
+      // this.ctx.beginPath();
+      // this.ctx.arc(0, h/5, w/14, 0, Math.PI * 2);
+      // this.ctx.fill();
+
+      // // Lower leg (wider at bottom)
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/12, h/5);
+      // this.ctx.lineTo(w/12, h/5);
+      // this.ctx.lineTo(w/10, h/3 + h/10);
+      // this.ctx.lineTo(-w/10, h/3 + h/10);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+
+      // // Foot plate
+      // this.ctx.fillStyle = '#333333';
+      // this.ctx.fillRect(-w/9, h/3 + h/10 - 2, w/4.5, h/16);
+
+      // // Armored plates on leg
+      // this.ctx.fillStyle = '#555555';
+      // this.ctx.fillRect(-w/14, h/10, w/7, h/20);
+      // this.ctx.restore();
+
+      // Main body - appears as heavy angular shape from top (keep this part)
       this.ctx.fillStyle = color;
       this.ctx.beginPath();
+      // Create hexagonal shape for the body
+      for (let i = 0; i < 6; i++) {
+        const bodyAngle = (Math.PI / 3) * i;
+        const bodyRadius = i % 2 === 0 ? w/2.8 : w/3.5; // Makes it more angular
+        const bx = Math.cos(bodyAngle) * bodyRadius;
+        const by = Math.sin(bodyAngle) * bodyRadius * 0.8;
+        if (i === 0) this.ctx.moveTo(bx, by);
+        else this.ctx.lineTo(bx, by);
+      }
+      this.ctx.closePath();
+      this.ctx.fill();
+
+      // Add hydraulic details to sides of tank body
+      this.ctx.fillStyle = '#444444';
+      this.ctx.fillRect(-w/2.7, -h/10, w/15, h/5);
+      this.ctx.fillRect(w/2.7 - w/15, -h/10, w/15, h/5);
+
+      // Add some tank-like armor plating to the body
+      this.ctx.strokeStyle = '#555555';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(-w/4, -h/6);
+      this.ctx.lineTo(w/4, -h/6);
+      this.ctx.stroke();
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(-w/3.5, h/7);
+      this.ctx.lineTo(w/3.5, h/7);
+      this.ctx.stroke();
       // Create hexagonal shape for the body (looks like shoulders from top)
       for (let i = 0; i < 6; i++) {
         const bodyAngle = (Math.PI / 3) * i;
@@ -1877,49 +2209,93 @@ class RoboRebellion {
       this.ctx.closePath();
       this.ctx.fill();
       
-      // Tank treads detail (edges)
-      this.ctx.strokeStyle = '#222222';
-      this.ctx.lineWidth = 2;
+      // // Tank treads detail (edges)
+      // this.ctx.strokeStyle = '#222222';
+      // this.ctx.lineWidth = 2;
       
       // Draw treads pattern on sides
-      const treadCount = 5;
-      const treadStep = h/6 / treadCount;
+      // const treadCount = 5;
+      // const treadStep = h/6 / treadCount;
       
-      for (let i = 0; i < treadCount; i++) {
-        const ty = i * treadStep + h/10;
+      // for (let i = 0; i < treadCount; i++) {
+      //   const ty = i * treadStep + h/10;
         
-        // Left tread marks
-        this.ctx.beginPath();
-        this.ctx.moveTo(-w/4 - 8, ty);
-        this.ctx.lineTo(-w/4 + 8, ty);
-        this.ctx.stroke();
+      //   // Left tread marks
+      //   this.ctx.beginPath();
+      //   this.ctx.moveTo(-w/4 - 8, ty);
+      //   this.ctx.lineTo(-w/4 + 8, ty);
+      //   this.ctx.stroke();
         
-        // Right tread marks
-        this.ctx.beginPath();
-        this.ctx.moveTo(w/4 - 8, ty);
-        this.ctx.lineTo(w/4 + 8, ty);
-        this.ctx.stroke();
-      }
+      //   // Right tread marks
+      //   this.ctx.beginPath();
+      //   this.ctx.moveTo(w/4 - 8, ty);
+      //   this.ctx.lineTo(w/4 + 8, ty);
+      //   this.ctx.stroke();
+      // }
       
     } else {
       // ---- STEALTH ROBOT ----
       
-      // Slim legs (barely visible from top)
-      this.ctx.fillStyle = darkColor;
+      // // Slim legs (seen from above as thin segments)
+      // this.ctx.fillStyle = darkColor;
+
+      // // Left leg - moved lower
+      // this.ctx.save();
+      // this.ctx.rotate(legSwing * 0.3);
+      // // Upper segment (thinner) - y position increased
+      // this.ctx.fillRect(-w/6 - 2, h/6, w/18, h/10);
+      // // Knee joint (small circular connector) - y position increased
+      // this.ctx.fillStyle = lightColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(-w/6 + w/36 - 2, h/6 + h/10, w/24, 0, Math.PI * 2);
+      // this.ctx.fill();
+      // // Lower segment (wider at bottom for foot) - y position increased
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/6 - 3, h/6 + h/10);
+      // this.ctx.lineTo(-w/6 + w/18, h/6 + h/10);
+      // this.ctx.lineTo(-w/6 + w/15, h/6 + h/5 + h/8);
+      // this.ctx.lineTo(-w/6 - 5, h/6 + h/5 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+      // // Foot highlight - y position increased
+      // this.ctx.strokeStyle = lightColor;
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(-w/6 - 4, h/6 + h/5 + h/12);
+      // this.ctx.lineTo(-w/6 + w/15 - 1, h/6 + h/5 + h/12);
+      // this.ctx.stroke();
+      // this.ctx.restore();
+
+      // // Right leg (mirrored) - moved lower
+      // this.ctx.save();
+      // this.ctx.rotate(-legSwing * 0.3);
+      // // Upper segment (thinner) - y position increased
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.fillRect(w/6 - w/18, h/6, w/18, h/10);
+      // // Knee joint - y position increased
+      // this.ctx.fillStyle = lightColor;
+      // this.ctx.beginPath();
+      // this.ctx.arc(w/6 - w/36, h/6 + h/10, w/24, 0, Math.PI * 2);
+      // this.ctx.fill();
+      // // Lower segment - y position increased
+      // this.ctx.fillStyle = darkColor;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/6 - w/18 - 1, h/6 + h/10);
+      // this.ctx.lineTo(w/6 + 2, h/6 + h/10);
+      // this.ctx.lineTo(w/6 + 4, h/6 + h/5 + h/8);
+      // this.ctx.lineTo(w/6 - w/15 - 3, h/6 + h/5 + h/8);
+      // this.ctx.closePath();
+      // this.ctx.fill();
+      // // Foot highlight - y position increased
+      // this.ctx.strokeStyle = lightColor;
+      // this.ctx.lineWidth = 1;
+      // this.ctx.beginPath();
+      // this.ctx.moveTo(w/6 - w/15 - 2, h/6 + h/5 + h/12);
+      // this.ctx.lineTo(w/6 + 3, h/6 + h/5 + h/12);
+      // this.ctx.stroke();
+      // this.ctx.restore();
       
-      // Left leg
-      this.ctx.save();
-      this.ctx.rotate(legSwing * 0.3);
-      this.ctx.fillRect(-w/6 - 2, h/10, w/15, h/5);
-      this.ctx.restore();
-      
-      // Right leg
-      this.ctx.save();
-      this.ctx.rotate(-legSwing * 0.3);
-      this.ctx.fillRect(w/6 - 3, h/10, w/15, h/5);
-      this.ctx.restore();
-      
-      // Sleek body - diamond-like shape from above
       this.ctx.fillStyle = color;
       this.ctx.beginPath();
       this.ctx.moveTo(0, -h/4);   // Top
@@ -1950,6 +2326,7 @@ class RoboRebellion {
       const headTilt = isMoving ? walkCycle * 0.1 : 0;
       this.ctx.save();
       this.ctx.rotate(headTilt);
+
       
       // Hood shadow (from above)
       this.ctx.fillStyle = darkColor;
@@ -1961,7 +2338,7 @@ class RoboRebellion {
       const maskBrightness = isMoving ? 120 + Math.abs(walkCycle) * 80 : 200;
       this.ctx.fillStyle = `rgb(0, ${maskBrightness}, ${maskBrightness})`;
       this.ctx.beginPath();
-      this.ctx.ellipse(0, -h/6, w/12, w/8, 0, 0, Math.PI);
+      this.ctx.ellipse(0, -h/6, w/9, w/8, 0, 0, Math.PI);
       this.ctx.fill();
       this.ctx.restore();
       
