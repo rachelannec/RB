@@ -261,17 +261,17 @@ class RoboRebellion {
     });
 
     // Volume control
-    document.getElementById('toggle-mute').addEventListener('click', () => {
-      if (this.sounds.bgm) {
-        if (this.sounds.bgm.volume > 0) {
-          this.sounds.bgm.volume = 0;
-          document.getElementById('toggle-mute').textContent = '🔇';
-        } else {
-          this.sounds.bgm.volume = 0.3;
-          document.getElementById('toggle-mute').textContent = '🔊';
-        }
-      }
-    });
+    // document.getElementById('toggle-mute').addEventListener('click', () => {
+    //   if (this.sounds.bgm) {
+    //     if (this.sounds.bgm.volume > 0) {
+    //       this.sounds.bgm.volume = 0;
+    //       document.getElementById('toggle-mute').textContent = '🔇';
+    //     } else {
+    //       this.sounds.bgm.volume = 0.3;
+    //       document.getElementById('toggle-mute').textContent = '🔊';
+    //     }
+    //   }
+    // });
 
     // Add sound control listeners
     document.getElementById('toggle-music').addEventListener('click', () => {
@@ -434,6 +434,9 @@ class RoboRebellion {
       gameOver: new Audio('assets/sounds/gameover.mp3'),
       bgm: new Audio('assets/sounds/bgm.mp3')
     };
+
+    // fixed vol
+    this.sounds.bgm.volume = 0.3;
     
     // For performance, preload and configure sounds
     Object.entries(this.sounds).forEach(([name, sound]) => {
