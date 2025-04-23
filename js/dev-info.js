@@ -4,7 +4,7 @@
 //     version: "1.0.0",
 //     description: "A top-down robot shooter with multiple playable robot types. Fight against waves of enemy bots and survive as long as possible!",
 //     developers: [
-//       "Your Name Here"
+//       "Rachel Anne Cilon"
 
 
 

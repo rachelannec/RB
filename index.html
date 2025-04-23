@@ -44,13 +44,13 @@
         <div class="controls-info">
             <p>WASD or Arrows to move • Mouse to aim and shoot • SPACE to dash</p>
         </div>
-        <button id="view-leaderboard">View Leaderboard</button>
+        <button id="view-leaderboard">View Recent Scores</button>
         <!-- <button id="back-to-menu">Back to Menu</button> -->
     </div>
 
     <!-- Leaderboard Section -->
     <div id="leaderboard" class="overlay hidden">
-      <h2>Leaderboard</h2>
+      <h2>Recent Scores</h2>
       <ul id="leaderboard-list"></ul>
       <button id="back-to-menu">Back to Menu</button>
     </div>
@@ -105,27 +105,46 @@
           <div class="info-panel-content">
             <div class="info-section">
               <h3>About</h3>
-              <p id="game-description"></p>
-              <p><strong>Version:</strong> <span id="game-version"></span></p>
+              <p>A a top-down action shooter where players control one of three specialized combat robots. Fight through endless waves of enemy robots in an arena-style battlefield, collecting powerups and maximizing your score.</p>
+              <p><strong>Version:</strong> <span>1.0.0</span></p>
             </div>
             
             <div class="info-section">
               <h3>Controls</h3>
-              <ul id="game-controls"></ul>
+              <ul id="game-controls-list">
+                <li><strong>WASD</strong> or <strong>Arrow Keys</strong>: Move</li>
+                <li><strong>Mouse</strong>: Aim and Shoot</li>
+                <li><strong>Left Click</strong>: Shoot</li>
+                <li><strong>Space</strong>: Dash</li>
+                <li><strong>ESC</strong>: Pause Menu</li>
+              </ul>
             </div>
             
             <div class="info-section">
               <h3>Credits</h3>
-              <ul id="game-credits"></ul>
+              <ul id="game-credits">
+                <li>https://freesound.org/</li>
+                <li>https://pixabay.com/</li>
+                <!-- <li></li>
+                <li></li>
+                <li></li> -->
+              </ul>
+            </div>
+
+            <div class="info-section">
+              <h3>Note from Developer</h3>
+              <p>In Recent Scores, your scores will not be saved if you exit the game. Thanks for playing.</p>
             </div>
             
             <div class="info-footer">
-              <p>© <span id="game-year"></span> <span id="game-developer"></span></p>
+              <p>© <span id="game-year">2025</span> <span id="game-developer"></span></p>
               <div class="social-links">
-                <a id="game-website" href="#" target="_blank">Website</a>
+                <!-- <a id="game-website" href="#" target="_blank">Website</a>
                 <a id="game-twitter" href="#" target="_blank">Twitter</a>
-                <a id="game-github" href="#" target="_blank">GitHub</a>
+                <a id="game-github" href="#" target="_blank">GitHub</a> -->
+                
               </div>
+              <p>For more information about the game, see <a href="https://github.com/rachelannec/RB" target="_blank">README.md</a></p>
             </div>
           </div>
         </div>

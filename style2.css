@@ -56,6 +56,8 @@
     font-size: 24px;
     color: #2196F3;
   }
+
+  
   
   #close-info-panel {
     font-size: 32px;
@@ -87,6 +89,19 @@
     padding-bottom: 5px;
     margin-top: 0;
   }
+
+  .info-section p {
+    color: #ccc;
+    /* line-height: 1.6; */
+    padding: 10px 0 0 20px;
+    font-size: 17px;
+  }
+
+  .info-section ul {
+    list-style-type: none;
+    padding: 10px 0 0 20px;
+
+  }
   
   .info-footer {
     margin-top: auto;
@@ -95,6 +110,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .info-footer p {
+    margin: 0;
+    color: #ccc;
+  }
+
+  .info-footer a {
+    color: #2196F3;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .info-footer a:hover {
+    color: white;
+    text-decoration: underline;
   }
   
   .social-links {
