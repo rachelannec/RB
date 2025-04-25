@@ -183,73 +183,103 @@
 
 #recent-scores {
     text-align: center;
-}
-
-/* .leaderboard-container {
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
-    width: 80%;
-    max-width: 600px;
-    margin: 20px auto;
     padding: 20px;
-} */
+}
 
 #recent-scores-list {
     list-style-type: none;
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
+    max-width: 800px; /* Match leaderboard width */
+    max-height: 400px; /* Add a max height */
+    overflow-y: auto; /* Enable vertical scrolling */
 }
 
 #recent-scores-list li {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin: 10px 0;
-    padding: 10px;
+    padding: 10px 15px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
+    text-align: left;
 }
 
-#recent-scores-list li:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.05);
+.player-name {
+    flex: 1;
+    min-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+.robot-type {
+    margin: 0 10px;
+}
+
+.timestamp {
+    color: #999;
+    font-size: 0.85em;
+    margin-left: 10px;
+}
+
+#view-recent-scores{
+    background-color: #ff9800;
 }
 
 
 
   /* for leadeerboards and stuffs */
-  .hidden {
+  /* .hidden {
     display: none;
-  }
+  } */
 
-  #leaderboard {
-      text-align: center;
+  #global-leaderboard {
+    width: 100%;
+    max-width: 800px; 
+    margin: 20px auto;
+    padding: 10px;
   }
+  
 
   .leaderboard-container {
       background-color: rgba(0, 0, 0, 0.7);
       border-radius: 10px;
-      width: 80%;
-      max-width: 600px;
-      margin: 20px auto;
+      width: 100%;
+      max-width: 800px; 
+      margin: 20px auto 40px auto; 
       padding: 20px;
+      max-height: 400px; 
+      overflow-y: auto; 
   }
 
   #leaderboard-list {
       list-style-type: none;
       padding: 0;
       margin: 0;
+      width: 100%;
   }
 
   #leaderboard-list li {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       margin: 10px 0;
-      padding: 10px;
+      padding: 10px 15px;
       background-color: rgba(255, 255, 255, 0.1);
       border-radius: 5px;
   }
 
   #leaderboard-list li:nth-child(even) {
       background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  #leaderboard-list li .waves {
+      color: #aaa;
+      margin-left: 10px;
+      white-space: nowrap;
   }
 
   .rank {
@@ -270,3 +300,4 @@
   .waves {
       color: #aaa;
   }
+

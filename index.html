@@ -48,14 +48,22 @@
         </div>
         <button id="view-recent-scores">View Recent Scores</button>
         <!-- <button id="back-to-menu">Back to Menu</button> -->
-        <div class="controls-info">
+        <!-- <div class="controls-info">
           <button id="view-leaderboard">VIEW TOP SCORES</button>
-      </div>
+      </div> -->
+      <div id="global-leaderboard">
+        <h2>TOP PLAYERS</h2>
+        <div class="leaderboard-container">
+            <ul id="leaderboard-list">
+                <li class="loading">Loading scores...</li>
+            </ul>
+        </div>
+    </div>
     </div>
 
     <!-- recent scores Section -->
     <div id="recent-scores" class="overlay hidden">
-      <h2>My Recent Scores</h2>
+      <h2>Recent Scores</h2>
       <ul id="recent-scores-list"></ul>
       <button id="back-to-menu">Back to Menu</button>
     </div>
@@ -175,8 +183,9 @@
     </div> -->
 
     <!-- Game Scripts -->
-    <script src="js/game-redux.js"></script>
-    <script src="js/dev-info.js"></script>
     <script src="js/storage-service.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/dev-info.js"></script>
+    <script src="js/game-redux.js"></script>
 </body>
 </html>

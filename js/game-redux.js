@@ -1286,6 +1286,11 @@ class RoboRebellion {
           if (success) {
             saveBtn.textContent = 'Score Saved!';
             this.showMessage('Score saved to global leaderboard!', 2000);
+            
+            // Refresh the leaderboard to show the new score
+            if (typeof loadLeaderboard === 'function') {
+              loadLeaderboard();
+            }
           } else {
             saveBtn.textContent = 'Error - Try Again';
             saveBtn.disabled = false;
