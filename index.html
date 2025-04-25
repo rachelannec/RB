@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="style2.css">
     <link rel="shortcut icon" href="./assets/image.png" type="image/x-icon">
+    <!-- Add Alibaba Cloud OSS SDK -->
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.16.0.min.js"></script>
 </head>
 <body>
     <!-- Game Canvas -->
@@ -44,23 +46,42 @@
         <div class="controls-info">
             <p>WASD or Arrows to move • Mouse to aim and shoot • SPACE to dash</p>
         </div>
-        <button id="view-leaderboard">View Recent Scores</button>
+        <button id="view-recent-scores">View Recent Scores</button>
         <!-- <button id="back-to-menu">Back to Menu</button> -->
+        <!-- <div class="controls-info">
+          <button id="view-leaderboard">VIEW TOP SCORES</button>
+      </div> -->
+      <div id="global-leaderboard">
+        <h2>TOP PLAYERS</h2>
+        <div class="leaderboard-container">
+            <ul id="leaderboard-list">
+                <li class="loading">Loading scores...</li>
+            </ul>
+        </div>
+    </div>
     </div>
 
-    <!-- Leaderboard Section -->
-    <div id="leaderboard" class="overlay hidden">
+    <!-- recent scores Section -->
+    <div id="recent-scores" class="overlay hidden">
       <h2>Recent Scores</h2>
-      <ul id="leaderboard-list"></ul>
+      <ul id="recent-scores-list"></ul>
       <button id="back-to-menu">Back to Menu</button>
     </div>
     
     <!-- Game Over Screen -->
     <div id="game-over" class="overlay hidden">
-        <h2>MISSION FAILED</h2>
-        <p>Score: <span id="final-score">0</span></p>
-        <p>Waves Cleared: <span id="rooms-cleared">0</span></p>
-        <button id="restart-game">TRY AGAIN</button>
+      <h1>GAME OVER</h1>
+      <div class="game-stats">
+          <p>Score: <span id="final-score">0</span></p>
+          <p>Waves Cleared: <span id="rooms-cleared">0</span></p>
+      </div>
+      <div class="save-score-form">
+          <input type="text" id="player-name" placeholder="Enter your name" maxlength="15">
+          <button id="save-score">SAVE SCORE</button>
+      </div>
+      <div class="game-over-buttons">
+          <button id="restart-game">PLAY AGAIN</button>
+      </div>
     </div>
     
     <!-- HUD Elements -->
@@ -150,8 +171,21 @@
         </div>
     </div>
 
+    <!-- leaderboard -->
+    <!-- <div id="leaderboard" class="overlay hidden">
+        <h1>TOP SCORES</h1>
+        <div class="leaderboard-container">
+            <ul id="leaderboard-list">
+                <li class="loading">Loading scores...</li>
+            </ul>
+        </div>
+        <button id="back-to-menu">BACK TO MENU</button>
+    </div> -->
+
     <!-- Game Scripts -->
-    <script src="js/game-redux.js"></script>
+    <script src="js/storage-service.js"></script>
+    <script src="js/leaderboard.js"></script>
     <script src="js/dev-info.js"></script>
+    <script src="js/game-redux.js"></script>
 </body>
 </html>

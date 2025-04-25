@@ -1,3 +1,5 @@
+// NOT PART OF ROBO-REBELLION!!!!!!!!!!!!!!!!!!!  hmmkay
+
 class SimpleGame {
   constructor() {
     // Basic initialization
