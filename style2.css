@@ -178,3 +178,95 @@
   #sound-controls .hud-button.muted {
     opacity: 0.5;
   }
+
+  /* for recent score */
+
+#recent-scores {
+    text-align: center;
+}
+
+/* .leaderboard-container {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+} */
+
+#recent-scores-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#recent-scores-list li {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+#recent-scores-list li:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+
+
+  /* for leadeerboards and stuffs */
+  .hidden {
+    display: none;
+  }
+
+  #leaderboard {
+      text-align: center;
+  }
+
+  .leaderboard-container {
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+  }
+
+  #leaderboard-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+  }
+
+  #leaderboard-list li {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+  }
+
+  #leaderboard-list li:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .rank {
+      font-weight: bold;
+      margin-right: 10px;
+  }
+
+  .name {
+      flex-grow: 1;
+      text-align: left;
+  }
+
+  .score {
+      font-weight: bold;
+      margin: 0 10px;
+  }
+
+  .waves {
+      color: #aaa;
+  }

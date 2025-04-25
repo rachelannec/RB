@@ -270,15 +270,21 @@ class RoboRebellion {
       this.toggleSFX();
     });
 
-    // Show leaderboard button
-    document.getElementById('view-leaderboard').addEventListener('click', () => {
-      this.showLeaderboard();
-    });
+    // recent scores
+    const viewRecentScoresBtn = document.getElementById('view-recent-scores');
+    if (viewRecentScoresBtn) {
+      viewRecentScoresBtn.addEventListener('click', () => {
+        this.showRecentScores();
+      });
+    }
 
     // Back to menu button
-    document.getElementById('back-to-menu').addEventListener('click', () => {
-      this.hideLeaderboard();
-    });
+    const backToMenuBtn = document.getElementById('back-to-menu');
+    if (backToMenuBtn) {
+      backToMenuBtn.addEventListener('click', () => {
+        this.hideRecentScores();
+      });
+    }
   }
 
   togglePause() {
@@ -452,8 +458,6 @@ class RoboRebellion {
     this.loadSoundPreferences();
   }
 
-  
-  
   gameLoop(timestamp) {
     // Calculate delta time (capped at 100ms to prevent huge jumps)
     const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1);
@@ -1243,10 +1247,11 @@ class RoboRebellion {
     );
   }
   
+  // edit for OSS implementation
   gameOver() {
     // Set state
     this.state = 'gameover';
-
+  
     // stop bgm
     if (this.sounds.bgm) {
       this.sounds.bgm.pause();
@@ -1261,9 +1266,32 @@ class RoboRebellion {
     document.getElementById('final-score').textContent = this.score;
     document.getElementById('rooms-cleared').textContent = this.wave - 1;
     document.getElementById('game-over').classList.remove('hidden');
-
-    // save score
-    this.saveHighScore(this.score);
+  
+    // save score locally (keep existing functionality)
+    this.saveLocalScore(this.score); // UPDATED FUNCTION NAME
+    
+    // New code: Add event listener to save score to OSS when player enters name
+    document.getElementById('save-score').addEventListener('click', () => {
+      const playerNameInput = document.getElementById('player-name');
+      const playerName = playerNameInput.value.trim() || 'Anonymous';
+      
+      // Disable button to prevent multiple submissions
+      const saveBtn = document.getElementById('save-score');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      
+      // Call our OSS service
+      saveScore(playerName, this.score, this.wave - 1, this.player.type)
+        .then(success => {
+          if (success) {
+            saveBtn.textContent = 'Score Saved!';
+            this.showMessage('Score saved to global leaderboard!', 2000);
+          } else {
+            saveBtn.textContent = 'Error - Try Again';
+            saveBtn.disabled = false;
+          }
+        });
+    });
   }
 
   applyDamageEffect() {
@@ -2623,41 +2651,41 @@ class RoboRebellion {
     );
   }
 
-  saveHighScore(score) {
+  saveLocalScore(score) {
     try {
-      const leaderboard = JSON.parse(localStorage.getItem('roboRebellion_leaderboard')) || [];
-      leaderboard.push({ score, date: new Date().toISOString() });
-      leaderboard.sort((a, b) => b.score - a.score);
-      leaderboard.splice(10);
-      localStorage.setItem('roboRebellion_leaderboard', JSON.stringify(leaderboard));
+      const recentScores = JSON.parse(localStorage.getItem('roboRebellion_recentScores')) || [];
+      recentScores.push({ score, date: new Date().toISOString() });
+      recentScores.sort((a, b) => b.score - a.score);
+      recentScores.splice(10);
+      localStorage.setItem('roboRebellion_recentScores', JSON.stringify(recentScores));
     } catch (e) {
       console.error('Error saving high score:', e);
     }
   }
   
-  loadLeaderboard() {
+  loadLocalScores() {
     try {
-      const leaderboard = JSON.parse(localStorage.getItem('roboRebellion_leaderboard')) || [];
-      const leaderboardList = document.getElementById('leaderboard-list');
-      leaderboardList.innerHTML = '';
-      leaderboard.forEach((entry, index) => {
+      const recentScores = JSON.parse(localStorage.getItem('roboRebellion_recentScores')) || [];
+      const recentScoresList = document.getElementById('recent-scores-list');
+      recentScoresList.innerHTML = '';
+      recentScores.forEach((entry, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = `${index + 1}. ${entry.score} - ${new Date(entry.date).toLocaleDateString()}`;
-        leaderboardList.appendChild(listItem);
+        recentScoresList.appendChild(listItem);
       });
     } catch (e) {
       console.error('Error loading leaderboard:', e);
     }
   }
 
-  showLeaderboard() {
-    this.loadLeaderboard();
-    document.getElementById('leaderboard').classList.remove('hidden');
+  showRecentScores() {
+    this.loadLocalScores();
+    document.getElementById('recent-scores').classList.remove('hidden');
     document.getElementById('start-screen').classList.add('hidden');
   }
 
-  hideLeaderboard() {
-    document.getElementById('leaderboard').classList.add('hidden');
+  hideRecentScores() {
+    document.getElementById('recent-scores').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
   }
 
