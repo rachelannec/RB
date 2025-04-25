@@ -1,5 +1,7 @@
-// API base URL - change this when you deploy your server
-const API_BASE_URL = 'http://localhost:3000/api';
+
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // This will use relative paths in production
+  : 'http://localhost:3000/api';  // Use localhost for development
 
 // Get leaderboard with backward compatibility
 async function getLeaderboard() {
