@@ -1,9 +1,11 @@
+// Update the API base URL and improve error handling
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api'  // This will use relative paths in production
-  : 'http://localhost:3000/api';  // Use localhost for development
+// API base URL with automatic detection
+const API_BASE_URL = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')
+  ? 'http://localhost:3000/api'
+  : '/api';
 
-// Get leaderboard with backward compatibility
+// Get leaderboard with better error handling
 async function getLeaderboard() {
   console.log('Fetching leaderboard from:', `${API_BASE_URL}/leaderboard`);
   
@@ -25,6 +27,11 @@ async function getLeaderboard() {
     return scores;
   } catch (error) {
     console.error('Error getting leaderboard:', error);
+    // Add alert for debugging in production
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      console.log('API URL being used:', API_BASE_URL);
+      console.log('Current hostname:', window.location.hostname);
+    }
     return [];
   }
 }

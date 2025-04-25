@@ -21,7 +21,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+// CORS configuration
+app.use(cors({
+  origin: ['https://robot-rr.vercel.app', 'https://www.your-domain.com', 'http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:5500'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
 // Add debugging middleware to log all requests
