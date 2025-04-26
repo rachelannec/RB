@@ -231,73 +231,96 @@
 
 
 
-  /* for leadeerboards and stuffs */
-  /* .hidden {
-    display: none;
-  } */
+/* for leadeerboards and stuffs */
+/* .hidden {
+  display: none;
+} */
 
-  #global-leaderboard {
+#global-leaderboard {
+  width: 100%;
+  max-width: 800px; 
+  margin: 20px auto;
+  padding: 10px;
+}
+
+
+.leaderboard-container {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
     width: 100%;
     max-width: 800px; 
-    margin: 20px auto;
-    padding: 10px;
-  }
-  
+    margin: 20px auto 40px auto; 
+    padding: 20px;
+    max-height: 400px; 
+    overflow-y: auto; 
+}
 
-  .leaderboard-container {
-      background-color: rgba(0, 0, 0, 0.7);
-      border-radius: 10px;
-      width: 100%;
-      max-width: 800px; 
-      margin: 20px auto 40px auto; 
-      padding: 20px;
-      max-height: 400px; 
-      overflow-y: auto; 
-  }
+#leaderboard-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
 
-  #leaderboard-list {
-      list-style-type: none;
-      padding: 0;
-      margin: 0;
-      width: 100%;
-  }
+#leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
 
-  #leaderboard-list li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 10px 0;
-      padding: 10px 15px;
-      background-color: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-  }
+#leaderboard-list li:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
 
-  #leaderboard-list li:nth-child(even) {
-      background-color: rgba(255, 255, 255, 0.05);
-  }
+#leaderboard-list li .waves {
+    color: #aaa;
+    margin-left: 10px;
+    white-space: nowrap;
+}
 
-  #leaderboard-list li .waves {
-      color: #aaa;
-      margin-left: 10px;
-      white-space: nowrap;
-  }
+.rank {
+    font-weight: bold;
+    margin-right: 10px;
+}
 
-  .rank {
-      font-weight: bold;
-      margin-right: 10px;
-  }
+.name {
+    flex-grow: 1;
+    text-align: left;
+}
 
-  .name {
-      flex-grow: 1;
-      text-align: left;
-  }
+.score {
+    font-weight: bold;
+    margin: 0 10px;
+}
 
-  .score {
-      font-weight: bold;
-      margin: 0 10px;
-  }
+.waves {
+    color: #aaa;
+}
 
-  .waves {
-      color: #aaa;
-  }
+/* save score form */
+.save-score-form{
+  position: relative;;
+}
+#player-name{
+  width: 300px;
+  margin: 0 auto;
+  padding: 10px;
+  border: #0d8aee solid 2px;
+  border-radius: 5px;
+  background-color: #0d89ee4f;
+}
 
+#save-score{
+  background-color: #ff9800;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition:  0.3s ease;
+}
