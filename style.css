@@ -61,12 +61,12 @@ body {
 #start-screen {
   overflow-y: auto;
   padding-top: 40px; /* Add more padding at the top */
-  padding-bottom: 80px; /* Add extra padding at the bottom for scrolling */
-  box-sizing: border-box; /* Include padding in height calculation */
-  width: 100%; /* Ensure it takes full width */
+  padding-bottom: 80px; 
+  box-sizing: border-box;
+  width: 100%; 
   max-width: 100%;
   align-items: center;
-  justify-content: flex-start; /* Align content to the top */
+  justify-content: flex-start; 
 }
 
 /* Make the title more prominent and ensure it's visible */
@@ -93,7 +93,7 @@ body {
 /* Make sure buttons are visible */
 #start-screen button {
   margin: 10px 0; 
-  min-width: 200px; /* Minimum width for buttons */
+  min-width: 200px; 
 }
 
 
